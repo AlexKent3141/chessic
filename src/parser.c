@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "utils.h"
 #include "assert.h"
 #include "ctype.h"
 #include "stdio.h"
@@ -16,24 +17,23 @@ board* board_from_fen(const char* fen)
     // Get the piece definitions.
     char c;
     char* token = strtok(fen_dup, " ");
-    int file = 0; int rank = 7;
+    int f = 0; int r = 7;
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
         if (isalpha(c))
         {
-            int loc = file_rank_to_board(file, rank);
-            b->squares[loc] = square_from_fen(c);
-            ++file;
+            set_piece_from_fen(b, 8*r + f, c);
+            ++f;
         }
         else if (c == '/')
         {
-            --rank;
-            file = 0;
+            --r;
+            f = 0;
         }
         else
         {
-            file += c - '0';
+            f += c - '0';
         }
     }
 
@@ -54,7 +54,7 @@ board* board_from_fen(const char* fen)
 
     // Get the en-passent square.
     token = strtok(NULL, " ");
-    if (token[0] != '-') bs->ep = coord_to_board(coord_from_fen(token));
+    if (token[0] != '-') bs->ep = loc_from_fen(token);
 
     // Get the half-move count.
     token = strtok(NULL, " ");
@@ -78,24 +78,19 @@ char* fen_from_board(board* b)
     state* bs = b->bs;
 
     // Set the piece definitions.
-    int i = 0, e, loc;
-    char s;
+    int i = 0, e;
+    int col, type;
     for (int r = 7; r >= 0; r--)
     {
         e = 0;
         for (int f = 0; f < 8; f++)
         {
-            loc = file_rank_to_board(f, r);
-            s = b->squares[loc];
-            if (s)
+            loc_details(b, 8*r+f, &col, &type);
+            if (type != NONE)
             {
-                if (e)
-                {
-                    fen[i++] = e + '0';
-                    e = 0;
-                }
-
-                fen[i++] = fen_from_square(s);
+                if (e) fen[i++] = e + '0';
+                e = 0;
+                fen[i++] = fen_from_piece(col, type);
             }
             else
             {
@@ -103,12 +98,7 @@ char* fen_from_board(board* b)
             }
         }
 
-        if (e)
-        {
-            fen[i++] = e + '0';
-            e = 0;
-        }
-
+        if (e) fen[i++] = e + '0';
         if (r) fen[i++] = '/';
     }
 
@@ -126,9 +116,8 @@ char* fen_from_board(board* b)
     fen[i++] = ' ';
     if (bs->ep != BAD_LOC)
     {
-        int coord = board_to_coord(bs->ep);
-        fen[i++] = (coord % 8) + 'a';
-        fen[i++] = (coord / 8) + '1';
+        fen[i++] = (bs->ep % 8) + 'a';
+        fen[i++] = (bs->ep / 8) + '1';
     }
     else
     {
@@ -156,45 +145,39 @@ char* fen_from_board(board* b)
     return fen;
 }
 
-char square_from_fen(char c)
+void set_piece_from_fen(board* b, int loc, char c)
 {
     int col = isupper(c) ? WHITE : BLACK;
     char l = tolower(c);
-    int p = NONE;
+    bb bit = (bb)1 << loc;
+    b->pieces[col] |= bit;
     switch (l)
     {
         case 'p':
-            p = PAWN;
+            b->pawns[col] |= bit;
             break;
         case 'n':
-            p = KNIGHT;
+            b->knights[col] |= bit;
             break;
         case 'b':
-            p = BISHOP;
+            b->bishops[col] |= bit;
             break;
         case 'r':
-            p = ROOK;
+            b->rooks[col] |= bit;
             break;
         case 'q':
-            p = QUEEN;
+            b->queens[col] |= bit;
             break;
         case 'k':
-            p = KING;
+            b->kings[col] |= bit;
             break;
     }
-
-    return create_square(col, p);
 }
 
-char fen_from_square(char s)
+char fen_from_piece(int col, int type)
 {
-    int p = piece_from_square(s);
-    int col = col_from_square(s);
-
-    assert(p);
-
     char c;
-    switch (p)
+    switch (type)
     {
         case PAWN:
             c = 'p';
@@ -221,9 +204,9 @@ char fen_from_square(char s)
     return c;
 }
 
-int coord_from_fen(const char* loc)
+int loc_from_fen(const char* loc)
 {
-    int file = loc[0] - 'a';
-    int rank = loc[1] - '1';
-    return 8*rank + file;
+    int f = loc[0] - 'a';
+    int r = loc[1] - '1';
+    return 8*r + f;
 }

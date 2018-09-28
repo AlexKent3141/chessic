@@ -17,24 +17,29 @@
 
 #define BAD_LOC -1
 
+// This is the bit board type.
+typedef uint64_t bb;
+
 // The first byte is the start location of the move and the second is the end location.
 // The locations are specified in the 0x88 coordinate system.
 typedef uint16_t move;
 
 typedef struct
 {
-    // TODO
+    move m;
+    struct node* next;
+} node;
+
+typedef struct
+{
+    node* start;
+    int n;
 } move_list;
 
 typedef struct
 {
-    // TODO
-} piece_list;
-
-typedef struct
-{
-    bool ks;
-    bool qs;
+    bool ks; // Whether the player can castle kingside.
+    bool qs; // Whether the player can castle queenside.
 } castling;
 
 typedef struct
@@ -50,18 +55,25 @@ typedef struct
 
 typedef struct
 {
-    int player;        // The player to move.
-    int turn;          // The number of full turns so far.
-    char* squares;     // The squares showing piece occupancy.
-    move_list moves;   // The moves to reach the current board state.
-    piece_list pieces; // The pieces that are on the board.
-    state* bs;         // The board state which varies per move.
+    int player;    // The player to move.
+    int turn;      // The number of full turns so far.
+    state* bs;     // The board state which varies per move.
+    bb pieces[2];  // The pieces for each colour.
+    bb pawns[2];
+    bb knights[2];
+    bb bishops[2];
+    bb rooks[2];
+    bb queens[2];
+    bb kings[2];
 } board;
 
-move create_move(char, char);
 board* board_from_fen(const char*);
 char* fen_from_board(board*);
 void print_board(board*);
+
+move create_move(char, char);
+move_list get_moves(board*);
+
 void free_board(board*);
 
 #endif // __CHESSIC_H__

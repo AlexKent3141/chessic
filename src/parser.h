@@ -3,8 +3,8 @@
 
 #include "board.h"
 
-char square_from_fen(char);
-char fen_from_square(char);
-int coord_from_fen(const char*);
+void set_piece_from_fen(board*, int, char);
+char fen_from_piece(int, int);
+int loc_from_fen(const char*);
 
 #endif // __PARSER_H__

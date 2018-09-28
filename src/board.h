@@ -4,12 +4,8 @@
 #include "../include/chessic.h"
 
 board* create_board_empty();
-int file_rank_to_board(int, int);
-int coord_to_board(int);
-int board_to_coord(int);
 
-char create_square(int, int);
-int piece_from_square(char);
-int col_from_square(char);
+// Get the colour and piece type at the specified location.
+void loc_details(board*, int, int*, int*);
 
 #endif // __CHESSIC_BOARD_H__

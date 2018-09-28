@@ -2,11 +2,9 @@
 #include "../include/chessic.h"
 #include "ctype.h"
 
-char square_to_char(char sq)
+char loc_to_char(int col, int type)
 {
-    int p = sq & 0x0F;
-    int col = sq & 0xF0;
-
-    char c[] = { '.', 'p', 'n', 'b', 'r', 'q', 'k' };
-    return col == WHITE ? toupper(c[p]) : c[p];
+    static const char c[] = { '.', 'p', 'n', 'b', 'r', 'q', 'k' };
+    return col == WHITE ? toupper(c[type]) : c[type];
 }
+
