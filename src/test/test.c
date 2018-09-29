@@ -1,23 +1,25 @@
 #include "parser_tests.h"
+#include "movegen_tests.h"
 #include "stdio.h"
 
 int tests_run = 0;
+
+bool run_tests(char* (*tests)())
+{
+    char* res = tests();
+    if (res) printf("%s\n", res);
+    return res == NULL;
+}
 
 int main()
 {
     init_bits();
 
-    char* result = all_parser_tests();
-    if (result != NULL)
-    {
-        printf("%s\n", result);
-    }
-    else
-    {
-        printf("ALL TESTS PASSED\n");
-    }
+    bool pass = run_tests(all_parser_tests)
+             && run_tests(all_movegen_tests);
 
+    if (pass) printf("ALL TESTS PASSED\n");
     printf("Tests run: %d\n", tests_run);
 
-    return result != NULL;
+    return !pass;
 }

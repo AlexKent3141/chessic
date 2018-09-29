@@ -91,6 +91,20 @@ void init_rays()
     }
 }
 
+int pop_lsb(bb* board)
+{
+    int b = __builtin_ctzll(*board);
+    *board &= ~((bb)1 << b);
+    return b;
+}
+
+int pop_msb(bb* board)
+{
+    int b = 63 - __builtin_clzll(*board);
+    *board &= ~((bb)1 << b);
+    return b;
+}
+
 void print_bb(bb mask)
 {
     for (int r = 7; r >= 0; r--)

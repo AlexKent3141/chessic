@@ -4,6 +4,9 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+#define FILE_NB 8
+#define RANK_NB 8
+
 #define WHITE 0
 #define BLACK 1
 
@@ -17,6 +20,8 @@
 
 #define BAD_LOC -1
 
+#define MAX_MOVES 250
+
 // This is the bit board type.
 typedef uint64_t bb;
 
@@ -26,13 +31,8 @@ typedef uint16_t move;
 
 typedef struct
 {
-    move m;
-    struct node* next;
-} node;
-
-typedef struct
-{
-    node* start;
+    move* moves;
+    move* end;
     int n;
 } move_list;
 
@@ -67,16 +67,26 @@ typedef struct
     bb kings[2];
 } board;
 
-void init_bits();
-
-board* board_from_fen(const char*);
-char* fen_from_board(board*);
-void print_board(board*);
+// Methods for interacting with bit boards.
+void init_bits(); // This must be called before generating moves!
+int pop_lsb(bb*);
+int pop_msb(bb*);
 void print_bb(bb);
 
-move create_move(char, char);
-move_list get_moves(board*);
-
+// Methods for creating and interacting with the board.
+board* board_from_fen(const char*);
+char* fen_from_board(board*);
 void free_board(board*);
+void print_board(board*);
+move_list* get_moves(board*);
+
+// Methods for creating and interacting with individual moves.
+move create_move(char, char);
+char get_start(move);
+char get_end(move);
+void print_move(move);
+move_list* make_move_list();
+void add_move(move_list*, move);
+void free_move_list(move_list*);
 
 #endif // __CHESSIC_H__
