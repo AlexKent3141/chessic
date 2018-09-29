@@ -67,9 +67,12 @@ typedef struct
     bb kings[2];
 } board;
 
+void init_bits();
+
 board* board_from_fen(const char*);
 char* fen_from_board(board*);
 void print_board(board*);
+void print_bb(bb);
 
 move create_move(char, char);
 move_list get_moves(board*);

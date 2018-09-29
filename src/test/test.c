@@ -5,6 +5,8 @@ int tests_run = 0;
 
 int main()
 {
+    init_bits();
+
     char* result = all_parser_tests();
     if (result != NULL)
     {
