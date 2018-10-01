@@ -9,7 +9,7 @@ char* movegen_test(const char* fen, int expected)
 
     board* b = board_from_fen(fen);
     print_board(b);
-    move_list* l = get_moves(b);
+    move_list* l = get_moves(b, ALL);
     free_board(b);
 
     printf("Num moves generated: %d\n", l->n);

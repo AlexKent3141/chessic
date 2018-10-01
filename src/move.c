@@ -2,19 +2,25 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-move create_move(char start, char end)
+// Give 6 bits for the start and end positions.
+move create_move(char start, char end, char piece)
 {
-    return (end << 8) + start;
+    return start + (end << 6) + (piece << 12);
 }
 
 char get_start(move m)
 {
-    return m & 0xFF;
+    return m & 0x3F;
 }
 
 char get_end(move m)
 {
-    return (m & 0xFF00) >> 8;
+    return (m & 0x0FC0) >> 6;
+}
+
+char get_promotion(move m)
+{
+    return (m & 0xF000) >> 12;
 }
 
 void print_move(move m)

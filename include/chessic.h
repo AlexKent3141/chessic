@@ -29,6 +29,13 @@ typedef uint64_t bb;
 // The locations are specified in the 0x88 coordinate system.
 typedef uint16_t move;
 
+typedef enum
+{
+    QUIETS = 1,
+    CAPTURES = 2,
+    ALL = QUIETS | CAPTURES
+} MOVE_TYPE;
+
 typedef struct
 {
     move* moves;
@@ -78,10 +85,10 @@ board* board_from_fen(const char*);
 char* fen_from_board(board*);
 void free_board(board*);
 void print_board(board*);
-move_list* get_moves(board*);
+move_list* get_moves(board*, MOVE_TYPE);
 
 // Methods for creating and interacting with individual moves.
-move create_move(char, char);
+move create_move(char, char, char);
 char get_start(move);
 char get_end(move);
 void print_move(move);
