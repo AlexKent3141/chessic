@@ -54,6 +54,9 @@ move_list* get_moves(board* b, MOVE_TYPE type)
     bb orth = b->rooks[b->player] | b->queens[b->player];
     find_orth_moves(b, l, type, orth, targets, RAY_ATTACKS);
 
+    bb diag = b->bishops[b->player] | b->queens[b->player];
+    find_diag_moves(b, l, type, diag, targets, RAY_ATTACKS);
+
     return l;
 }
 
@@ -138,7 +141,6 @@ void find_castling_moves(board* b, move_list* l)
 void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
 {
     bb all = b->pieces[WHITE] | b->pieces[BLACK];
-    bb enemies = b->pieces[1-b->player];
 
     int p;
     bb blockers, ray;
@@ -164,6 +166,38 @@ void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targe
         ray = rays[p][W];
         blockers = ray & all;
         if (blockers) ray ^= rays[msb(blockers)][W];
+        add_moves(p, l, ray & targets);
+    }
+}
+
+void find_diag_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
+{
+    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+
+    int p;
+    bb blockers, ray;
+    while (pieces)
+    {
+        p = pop_lsb(&pieces);
+
+        ray = rays[p][NW];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[lsb(blockers)][NW];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][NE];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[lsb(blockers)][NE];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][SW];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[msb(blockers)][SW];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][SE];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[msb(blockers)][SE];
         add_moves(p, l, ray & targets);
     }
 }

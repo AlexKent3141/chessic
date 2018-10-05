@@ -7,6 +7,7 @@ char* movegen_test(const char*, int);
 
 char* movegen_test1();
 char* movegen_test2();
+char* movegen_test3();
 
 char* all_movegen_tests();
 
