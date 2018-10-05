@@ -78,6 +78,8 @@ typedef struct
 void init_bits(); // This must be called before generating moves!
 int pop_lsb(bb*);
 int pop_msb(bb*);
+int lsb(bb);
+int msb(bb);
 void print_bb(bb);
 
 // Methods for creating and interacting with the board.

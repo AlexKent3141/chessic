@@ -12,8 +12,11 @@ typedef enum
 
 extern bb RANKS[8];
 extern bb FILES[8];
+extern bb KNIGHT_ATTACKS[64];
+extern bb KING_ATTACKS[64];
 extern bb RAY_ATTACKS[64][8];
 
+void init_steppers();
 void init_rays();
 
 #endif // __BITS_H__

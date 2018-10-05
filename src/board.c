@@ -42,11 +42,22 @@ void free_board(board* b)
 move_list* get_moves(board* b, MOVE_TYPE type)
 {
     move_list* l = make_move_list();
-    add_pawn_moves(b, l, type);
+    find_pawn_moves(b, l, type);
+
+    bb targets = 0;
+    if (type & QUIETS) targets |= ~(b->pieces[WHITE] | b->pieces[BLACK]);
+    if (type & CAPTURES) targets |= b->pieces[1-b->player];
+
+    find_knight_moves(b, l, targets);
+    find_king_moves(b, l, targets);
+
+    bb orth = b->rooks[b->player] | b->queens[b->player];
+    find_orth_moves(b, l, type, orth, targets, RAY_ATTACKS);
+
     return l;
 }
 
-void add_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
+void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
 {
     int p = b->player;
     bb enemies = b->pieces[1-p];
@@ -66,8 +77,8 @@ void add_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
         bb f2 = p == WHITE ? (f1 & RANKS[2]) << FILE_NB : (f1 & RANKS[5]) >> FILE_NB;
         f2 &= ~all;
 
-        add_moves(f1, l, p, forward);
-        add_moves(f2, l, p, 2*forward);
+        add_pawn_moves(f1, l, forward);
+        add_pawn_moves(f2, l, 2*forward);
     }
 
     // Normal and en-passent captures (without promotions).
@@ -81,8 +92,8 @@ void add_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
         left_caps &= (enemies | ep);
         right_caps &= (enemies | ep);
 
-        add_moves(left_caps, l, p, cap1);
-        add_moves(right_caps, l, p, cap2);
+        add_pawn_moves(left_caps, l, cap1);
+        add_pawn_moves(right_caps, l, cap2);
     }
 
     // Promotions.
@@ -92,7 +103,7 @@ void add_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
         bb f1 = p == WHITE ? pawns << FILE_NB : pawns >> FILE_NB;
         f1 &= ~all;
 
-        add_promo_moves(f1, l, p, forward);
+        add_promo_moves(f1, l, forward);
 
         if (type & CAPTURES)
         {
@@ -102,13 +113,80 @@ void add_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
             left_caps &= enemies;
             right_caps &= enemies;
 
-            add_promo_moves(left_caps, l, p, cap1);
-            add_promo_moves(right_caps, l, p, cap2);
+            add_promo_moves(left_caps, l, cap1);
+            add_promo_moves(right_caps, l, cap2);
         }
     }
 }
 
-void add_moves(bb ends, move_list* l, int col, int d)
+void find_knight_moves(board* b, move_list* l, bb targets)
+{
+    find_stepper_moves(b, l, b->knights[b->player], targets, KNIGHT_ATTACKS);
+}
+
+void find_king_moves(board* b, move_list* l, bb targets)
+{
+    find_stepper_moves(b, l, b->kings[b->player], targets, KING_ATTACKS);
+    find_castling_moves(b, l);
+}
+
+void find_castling_moves(board* b, move_list* l)
+{
+    // TODO
+}
+
+void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
+{
+    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb enemies = b->pieces[1-b->player];
+
+    int p;
+    bb blockers, ray;
+    while (pieces)
+    {
+        p = pop_lsb(&pieces);
+
+        ray = rays[p][N];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[lsb(blockers)][N];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][E];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[lsb(blockers)][E];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][S];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[msb(blockers)][S];
+        add_moves(p, l, ray & targets);
+
+        ray = rays[p][W];
+        blockers = ray & all;
+        if (blockers) ray ^= rays[msb(blockers)][W];
+        add_moves(p, l, ray & targets);
+    }
+}
+
+void find_stepper_moves(board* b, move_list* l, bb steppers, bb targets, bb* attacks)
+{
+    int loc;
+    while (steppers)
+    {
+        loc = pop_lsb(&steppers);
+        add_moves(loc, l, attacks[loc] & targets);
+    }
+}
+
+void add_moves(int loc, move_list* l, bb ends)
+{
+    while (ends)
+    {
+        add_move(l, create_move(loc, pop_lsb(&ends), NONE));
+    }
+}
+
+void add_pawn_moves(bb ends, move_list* l, int d)
 {
     int loc;
     while (ends)
@@ -118,7 +196,7 @@ void add_moves(bb ends, move_list* l, int col, int d)
     }
 }
 
-void add_promo_moves(bb ends, move_list* l, int col, int d)
+void add_promo_moves(bb ends, move_list* l, int d)
 {
     int loc;
     while (ends)

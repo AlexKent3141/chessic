@@ -3,6 +3,8 @@
 
 bb RANKS[8];
 bb FILES[8];
+bb KNIGHT_ATTACKS[64];
+bb KING_ATTACKS[64];
 bb RAY_ATTACKS[64][8];
 
 void init_bits()
@@ -13,9 +15,47 @@ void init_bits()
     FILES[0] = 0x0101010101010101;
     for (int i = 1; i < 8; i++) FILES[i] = FILES[i-1] << 1;
 
+    init_steppers();
     init_rays();
 }
 
+void init_steppers()
+{
+    // Knights.
+    int nrd[8] = { 2, 2, 1, 1, -1, -1, -2, -2 };
+    int nfd[8] = { 1, -1, 2, -2, 2, -2, 1, -1 };
+
+    // Kings.
+    int krd[8] = { 1, 1, 1, 0, 0, -1, -1, -1 };
+    int kfd[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+    int r1, f1;
+    for (int r = 0; r < 8; r++)
+    {
+        for (int f = 0; f < 8; f++)
+        {
+            bb nc = 0;
+            bb kc = 0;
+            for (int d = 0; d < 8; d++)
+            {
+                r1 = r + nrd[d];
+                f1 = f + nfd[d];
+                if (r1 > -1 && r1 < 8 && f1 > -1 && f1 < 8) nc |= (bb)1 << (8*r1+f1);
+
+                r1 = r + krd[d];
+                f1 = f + kfd[d];
+                if (r1 > -1 && r1 < 8 && f1 > -1 && f1 < 8) kc |= (bb)1 << (8*r1+f1);
+            }
+
+            KNIGHT_ATTACKS[8*r+f] = nc;
+            KING_ATTACKS[8*r+f] = kc;
+        }
+    }
+}
+
+// Initialise the rays.
+// The first 4 are orthogonals and the latter 4 are diagonals.
+// The first 2 of each set are positive rays and the latter 2 are negative.
 void init_rays()
 {
     // North: start from A1.
@@ -103,6 +143,16 @@ int pop_msb(bb* board)
     int b = 63 - __builtin_clzll(*board);
     *board &= ~((bb)1 << b);
     return b;
+}
+
+int lsb(bb board)
+{
+    return __builtin_ctzll(board);
+}
+
+int msb(bb board)
+{
+    return 63 - __builtin_clzll(board);
 }
 
 void print_bb(bb mask)
