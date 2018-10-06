@@ -34,7 +34,12 @@ char* movegen_test2()
 
 char* movegen_test3()
 {
-    return movegen_test("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 20);
+    return movegen_test("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 48);
+}
+
+char* movegen_test4()
+{
+    return movegen_test("r3kr2/8/8/8/8/8/2p5/R3K2R w KQkq - - 0 1", 24);
 }
 
 char* all_movegen_tests()
@@ -42,5 +47,6 @@ char* all_movegen_tests()
     mu_run_test(movegen_test1);
     mu_run_test(movegen_test2);
     mu_run_test(movegen_test3);
+    mu_run_test(movegen_test4);
     return NULL;
 }

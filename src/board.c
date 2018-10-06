@@ -135,7 +135,26 @@ void find_king_moves(board* b, move_list* l, bb targets)
 
 void find_castling_moves(board* b, move_list* l)
 {
-    // TODO
+    int p = b->player;
+    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    int start_loc = p == WHITE ? 4 : 60;
+    if (b->bs->crs[p].ks)
+    {
+        if (!test(all, start_loc+1)    && !test(all, start_loc+2)
+         && !is_attacked(b, start_loc) && !is_attacked(b, start_loc+1))
+        {
+            add_move(l, create_move(start_loc, start_loc+2, NONE));
+        }
+    }
+
+    if (b->bs->crs[p].qs)
+    {
+        if (!test(all, start_loc-1) && !test(all, start_loc-2) && !test(all, start_loc-3)
+         && !is_attacked(b, start_loc) && !is_attacked(b, start_loc-1))
+        {
+            add_move(l, create_move(start_loc, start_loc-2, NONE));
+        }
+    }
 }
 
 void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
@@ -210,6 +229,119 @@ void find_stepper_moves(board* b, move_list* l, bb steppers, bb targets, bb* att
         loc = pop_lsb(&steppers);
         add_moves(loc, l, attacks[loc] & targets);
     }
+}
+
+bool is_attacked(board* b, int loc)
+{
+    int p = b->player;
+    int e = 1-p;
+
+    // Check steppers.
+    if (KING_ATTACKS[loc] & b->kings[e]) return true;
+    if (KNIGHT_ATTACKS[loc] & b->knights[e]) return true;
+
+    // Check orthogonal rays.
+    bb targets = b->rooks[e] | b->queens[e];
+    if (RAY_ATTACKS_ALL[loc][ORTH] & targets)
+    {
+        if (is_orth_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+    }
+
+    // Check diagonal rays.
+    targets = b->bishops[e] | b->queens[e];
+    if (RAY_ATTACKS_ALL[loc][DIAG] & targets)
+    {
+        if (is_diag_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+    }
+
+    // Check pawns.
+    bb l = (bb)1 << loc;
+    bb pawns = b->pawns[e];
+    bb attackers = p == WHITE ? l << 7 : l >> 7;
+    attackers |= (p == WHITE ? l << 9 : l >> 9);
+    if (attackers & pawns) return true;
+
+    return false;
+}
+
+bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+{
+    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb ray, attackers;
+
+    ray = rays[loc][N];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][N]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][E];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][E]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][S];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][S]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][W];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][W]);
+        if (!(ray & all)) return true;
+    }
+
+    return false;
+}
+
+bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+{
+    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb ray, attackers;
+
+    ray = rays[loc][NE];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][NE]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][NW];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][NW]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][SE];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][SE]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][SW];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][SW]);
+        if (!(ray & all)) return true;
+    }
+
+    return false;
 }
 
 void add_moves(int loc, move_list* l, bb ends)

@@ -46,10 +46,10 @@ board* board_from_fen(const char* fen)
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
-        if      (c == 'K') bs->wc.ks = true;
-        else if (c == 'Q') bs->wc.qs = true;
-        else if (c == 'k') bs->bc.ks = true;
-        else if (c == 'q') bs->bc.qs = true;
+        if      (c == 'K') bs->crs[WHITE].ks = true;
+        else if (c == 'Q') bs->crs[WHITE].qs = true;
+        else if (c == 'k') bs->crs[BLACK].ks = true;
+        else if (c == 'q') bs->crs[BLACK].qs = true;
     }
 
     // Get the en-passent square.
@@ -107,10 +107,10 @@ char* fen_from_board(board* b)
 
     fen[i++] = ' ';
     int start = i;
-    if (bs->wc.ks) fen[i++] = 'K';
-    if (bs->wc.qs) fen[i++] = 'Q';
-    if (bs->bc.ks) fen[i++] = 'k';
-    if (bs->bc.qs) fen[i++] = 'q';
+    if (bs->crs[WHITE].ks) fen[i++] = 'K';
+    if (bs->crs[WHITE].qs) fen[i++] = 'Q';
+    if (bs->crs[BLACK].ks) fen[i++] = 'k';
+    if (bs->crs[BLACK].qs) fen[i++] = 'q';
     if (i == start) fen[i++] = '-';
 
     fen[i++] = ' ';

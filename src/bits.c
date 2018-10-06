@@ -6,6 +6,7 @@ bb FILES[8];
 bb KNIGHT_ATTACKS[64];
 bb KING_ATTACKS[64];
 bb RAY_ATTACKS[64][8];
+bb RAY_ATTACKS_ALL[64][2];
 
 void init_bits()
 {
@@ -129,6 +130,16 @@ void init_rays()
         for (int r = 7; r >= 0; r--, c = (c & ~RANKS[0]) >> 8) RAY_ATTACKS[8*r+f][SW] = c;
         diag_start = (diag_start & ~FILES[0]) >> 1;
     }
+
+    // Make the combined orthogonal and diagonal rays.
+    for (int i = 0; i < 64; i++)
+    {
+        RAY_ATTACKS_ALL[i][ORTH] =
+            RAY_ATTACKS[i][N] | RAY_ATTACKS[i][E] | RAY_ATTACKS[i][S] | RAY_ATTACKS[i][W];
+
+        RAY_ATTACKS_ALL[i][DIAG] =
+            RAY_ATTACKS[i][NE] | RAY_ATTACKS[i][NW] | RAY_ATTACKS[i][SE] | RAY_ATTACKS[i][SW];
+    }
 }
 
 int pop_lsb(bb* board)
@@ -153,6 +164,11 @@ int lsb(bb board)
 int msb(bb board)
 {
     return 63 - __builtin_clzll(board);
+}
+
+bool test(bb board, int loc)
+{
+    return board & ((bb)1 << loc);
 }
 
 void print_bb(bb mask)

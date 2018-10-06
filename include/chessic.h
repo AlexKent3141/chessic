@@ -55,8 +55,7 @@ typedef struct
     int cap;                // The piece that was captured on the last move.
     int ep;                 // The index of the square where an en-passent capture is possible.
     int plies_50_move;      // The plies since the last move that reset the 50 move rule.
-    castling wc;            // The castling rights for white.
-    castling bc;            // The castling rights for black.
+    castling crs[2];        // The castling rights for each player.
     struct state* previous; // The previous state data.
 } state;
 
@@ -80,6 +79,7 @@ int pop_lsb(bb*);
 int pop_msb(bb*);
 int lsb(bb);
 int msb(bb);
+bool test(bb, int);
 void print_bb(bb);
 
 // Methods for creating and interacting with the board.
@@ -87,7 +87,7 @@ board* board_from_fen(const char*);
 char* fen_from_board(board*);
 void free_board(board*);
 void print_board(board*);
-move_list* get_moves(board*, MOVE_TYPE);
+move_list* get_moves(board*, MOVE_TYPE); // Generate pseudo-legal moves.
 
 // Methods for creating and interacting with individual moves.
 move create_move(char, char, char);
