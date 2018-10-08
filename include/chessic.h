@@ -6,35 +6,44 @@
 
 #define FILE_NB 8
 #define RANK_NB 8
-
-#define WHITE 0
-#define BLACK 1
-
-#define NONE   0
-#define PAWN   1
-#define KNIGHT 2
-#define BISHOP 3
-#define ROOK   4
-#define QUEEN  5
-#define KING   6
+#define SQUARE_NB 64
 
 #define BAD_LOC -1
-
 #define MAX_MOVES 250
 
-// This is the bit board type.
-typedef uint64_t bb;
+typedef uint64_t bb; // This is the bit board type.
+typedef uint32_t move;
+typedef uint16_t piece;
 
-// The first byte is the start location of the move and the second is the end location.
-// The locations are specified in the 0x88 coordinate system.
-typedef uint16_t move;
+typedef enum
+{
+    WHITE, BLACK
+} COLOUR;
+
+// The piece types.
+typedef enum
+{
+    NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+} PIECE_TYPE;
+
+
+typedef enum
+{
+    NORMAL = 0,
+    TWOSPACE = 1,
+    PROMOTION = 2,
+    ENPASSENT = 4,
+    CASTLE = 8,
+    KINGCASTLE = CASTLE | 16,
+    QUEENCASTLE = CASTLE | 32
+} MOVE_TYPE;
 
 typedef enum
 {
     QUIETS = 1,
     CAPTURES = 2,
     ALL = QUIETS | CAPTURES
-} MOVE_TYPE;
+} MOVE_GEN_TYPE;
 
 typedef struct
 {
@@ -61,16 +70,13 @@ typedef struct
 
 typedef struct
 {
-    int player;    // The player to move.
-    int turn;      // The number of full turns so far.
-    state* bs;     // The board state which varies per move.
-    bb pieces[2];  // The pieces for each colour.
-    bb pawns[2];
-    bb knights[2];
-    bb bishops[2];
-    bb rooks[2];
-    bb queens[2];
-    bb kings[2];
+    int player;     // The player to move.
+    int turn;       // The number of full turns so far.
+    state* bs;      // The board state which varies per move.
+    piece squares[SQUARE_NB]; // The pieces stored as an array.
+
+    bb all[2]; // All pieces for each player.
+    bb pieces[7][2]; // The pieces of each type for each player.
 } board;
 
 // Methods for interacting with bit boards.
@@ -88,11 +94,20 @@ char* fen_from_board(board*);
 void free_board(board*);
 void print_board(board*);
 move_list* get_moves(board*, MOVE_TYPE); // Generate pseudo-legal moves.
+bool make_move(board*, move); // Attempt to make the move (returns false if it's illegal).
+void undo_move(board*); // Undo the last made move.
 
-// Methods for creating and interacting with individual moves.
-move create_move(char, char, char);
+// Methods for creating and interacting with pieces.
+piece create_piece(char, char);
+char get_piece_colour(piece);
+char get_piece_type(piece);
+
+// Methods for creating and interacting with moves.
+move create_move(char, char, char, char);
 char get_start(move);
 char get_end(move);
+char get_promotion(move);
+char get_move_type(move);
 void print_move(move);
 move_list* make_move_list();
 void add_move(move_list*, move);

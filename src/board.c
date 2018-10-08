@@ -1,5 +1,6 @@
 #include "board.h"
 #include "utils.h"
+#include "assert.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
@@ -17,15 +18,33 @@ board* create_board_empty()
     bs->previous = NULL;
     b->bs = bs;
 
-    memset(b->pieces, 0, 2*sizeof(bb));
-    memset(b->pawns, 0, 2*sizeof(bb));
-    memset(b->knights, 0, 2*sizeof(bb));
-    memset(b->bishops, 0, 2*sizeof(bb));
-    memset(b->rooks, 0, 2*sizeof(bb));
-    memset(b->queens, 0, 2*sizeof(bb));
-    memset(b->kings, 0, 2*sizeof(bb));
+    memset(b->squares, 0, SQUARE_NB*sizeof(piece));
+
+    memset(b->all, 0, 2*sizeof(bb));
+    for (int i = 0; i <= KING; i++) memset(b->pieces[i], 0, 2*sizeof(bb));
 
     return b;
+}
+
+bool make_move(board* b, move m)
+{
+    assert(b != NULL);
+    assert(b->bs != NULL);
+
+    int s = get_start(m);
+    int e = get_end(m);
+    piece ps = get_piece_type(b->squares[s]);
+    piece pe = get_piece_type(b->squares[e]);
+
+    // Clone the previous board state.
+    state* next = malloc(sizeof(state));
+    memcpy(next, b->bs, sizeof(state));
+
+    return true;
+}
+
+void undo_move(board* b)
+{
 }
 
 void free_board(board* b)
@@ -39,21 +58,8 @@ void free_board(board* b)
 
 void loc_details(board* b, int loc, int* col, int* type)
 {
-    bb bloc = (bb)1 << loc;
-    if (b->pieces[WHITE] & bloc) *col = WHITE;
-    else if (b->pieces[BLACK] & bloc) *col = BLACK;
-    else
-    {
-        *type = NONE;
-        return;
-    }
-
-    if (b->pawns[*col] & bloc) *type = PAWN;
-    else if (b->knights[*col] & bloc) *type = KNIGHT;
-    else if (b->bishops[*col] & bloc) *type = BISHOP;
-    else if (b->rooks[*col] & bloc) *type = ROOK;
-    else if (b->queens[*col] & bloc) *type = QUEEN;
-    else if (b->kings[*col] & bloc) *type = KING;
+    *col = get_piece_colour(b->squares[loc]);
+    *type = get_piece_type(b->squares[loc]);
 }
 
 void print_board(board* b)

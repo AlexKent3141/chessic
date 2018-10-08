@@ -13,7 +13,7 @@ void find_orth_moves(board*, move_list*, MOVE_TYPE, bb, bb, bb(*)[8]);
 void find_diag_moves(board*, move_list*, MOVE_TYPE, bb, bb, bb(*)[8]);
 
 void add_moves(int, move_list*, bb);
-void add_pawn_moves(bb, move_list*, int);
+void add_pawn_moves(bb, move_list*, int, MOVE_TYPE);
 void add_promo_moves(bb, move_list*, int);
 
 bool is_attacked(board*, int);

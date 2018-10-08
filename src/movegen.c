@@ -7,16 +7,16 @@ move_list* get_moves(board* b, MOVE_TYPE type)
     find_pawn_moves(b, l, type);
 
     bb targets = 0;
-    if (type & QUIETS) targets |= ~(b->pieces[WHITE] | b->pieces[BLACK]);
-    if (type & CAPTURES) targets |= b->pieces[1-b->player];
+    if (type & QUIETS) targets |= ~(b->all[WHITE] | b->all[BLACK]);
+    if (type & CAPTURES) targets |= b->all[1-b->player];
 
     find_knight_moves(b, l, targets);
     find_king_moves(b, l, targets);
 
-    bb orth = b->rooks[b->player] | b->queens[b->player];
+    bb orth = b->pieces[ROOK][b->player] | b->pieces[QUEEN][b->player];
     find_orth_moves(b, l, type, orth, targets, RAY_ATTACKS);
 
-    bb diag = b->bishops[b->player] | b->queens[b->player];
+    bb diag = b->pieces[BISHOP][b->player] | b->pieces[QUEEN][b->player];
     find_diag_moves(b, l, type, diag, targets, RAY_ATTACKS);
 
     return l;
@@ -25,8 +25,8 @@ move_list* get_moves(board* b, MOVE_TYPE type)
 void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
 {
     int p = b->player;
-    bb enemies = b->pieces[1-p];
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb enemies = b->all[1-p];
+    bb all = b->all[WHITE] | b->all[BLACK];
     bb promo = p == WHITE ? RANKS[6] : RANKS[1];
     int forward = p == WHITE ? FILE_NB : -FILE_NB;
     int cap1 = FILE_NB-1;
@@ -35,34 +35,42 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
     // Single and double pawn pushes (without promotions).
     if (type & QUIETS)
     {
-        bb pawns = b->pawns[p] & ~promo;
+        bb pawns = b->pieces[PAWN][p] & ~promo;
         bb f1 = p == WHITE ? pawns << FILE_NB : pawns >> FILE_NB;
         f1 &= ~all;
 
         bb f2 = p == WHITE ? (f1 & RANKS[2]) << FILE_NB : (f1 & RANKS[5]) >> FILE_NB;
         f2 &= ~all;
 
-        add_pawn_moves(f1, l, forward);
-        add_pawn_moves(f2, l, 2*forward);
+        add_pawn_moves(f1, l, forward, NORMAL);
+        add_pawn_moves(f2, l, 2*forward, TWOSPACE);
     }
 
     // Normal and en-passent captures (without promotions).
     if (type & CAPTURES)
     {
-        bb pawns = b->pawns[p] & ~promo;
+        bb pawns = b->pieces[PAWN][p] & ~promo;
         bb left_caps = p == WHITE ? pawns << cap1 : pawns >> cap1;
         bb right_caps = p == WHITE ? pawns << cap2 : pawns >> cap2;
 
-        bb ep = b->bs->ep == BAD_LOC ? 0 : (bb)1 << b->bs->ep;
-        left_caps &= (enemies | ep);
-        right_caps &= (enemies | ep);
+        add_pawn_moves(left_caps & enemies, l, cap1, NORMAL);
+        add_pawn_moves(right_caps & enemies, l, cap2, NORMAL);
 
-        add_pawn_moves(left_caps, l, cap1);
-        add_pawn_moves(right_caps, l, cap2);
+        int ep_loc = b->bs->ep;
+        if (ep_loc != BAD_LOC)
+        {
+            bb ep = (bb)1 << ep_loc;
+
+            // Need to shift "backwards" from the ep location.
+            bb caps = p == WHITE ? ep >> cap1 : ep << cap1;
+            caps |= p == WHITE ? ep >> cap2 : ep << cap2;
+            while (caps)
+                add_move(l, create_move(pop_lsb(&caps), ep_loc, NONE, ENPASSENT));
+        }
     }
 
     // Promotions.
-    bb pawns = b->pawns[p] & promo;
+    bb pawns = b->pieces[PAWN][p] & promo;
     if (pawns)
     {
         bb f1 = p == WHITE ? pawns << FILE_NB : pawns >> FILE_NB;
@@ -86,26 +94,26 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
 
 void find_knight_moves(board* b, move_list* l, bb targets)
 {
-    find_stepper_moves(b, l, b->knights[b->player], targets, KNIGHT_ATTACKS);
+    find_stepper_moves(b, l, b->pieces[KNIGHT][b->player], targets, KNIGHT_ATTACKS);
 }
 
 void find_king_moves(board* b, move_list* l, bb targets)
 {
-    find_stepper_moves(b, l, b->kings[b->player], targets, KING_ATTACKS);
+    find_stepper_moves(b, l, b->pieces[KING][b->player], targets, KING_ATTACKS);
     find_castling_moves(b, l);
 }
 
 void find_castling_moves(board* b, move_list* l)
 {
     int p = b->player;
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb all = b->all[WHITE] | b->all[BLACK];
     int start_loc = p == WHITE ? 4 : 60;
     if (b->bs->crs[p].ks)
     {
         if (!test(all, start_loc+1)    && !test(all, start_loc+2)
          && !is_attacked(b, start_loc) && !is_attacked(b, start_loc+1))
         {
-            add_move(l, create_move(start_loc, start_loc+2, NONE));
+            add_move(l, create_move(start_loc, start_loc+2, NONE, KINGCASTLE));
         }
     }
 
@@ -114,14 +122,14 @@ void find_castling_moves(board* b, move_list* l)
         if (!test(all, start_loc-1) && !test(all, start_loc-2) && !test(all, start_loc-3)
          && !is_attacked(b, start_loc) && !is_attacked(b, start_loc-1))
         {
-            add_move(l, create_move(start_loc, start_loc-2, NONE));
+            add_move(l, create_move(start_loc, start_loc-2, NONE, QUEENCASTLE));
         }
     }
 }
 
 void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
 {
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb all = b->all[WHITE] | b->all[BLACK];
 
     int p;
     bb blockers, ray;
@@ -153,7 +161,7 @@ void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targe
 
 void find_diag_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
 {
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb all = b->all[WHITE] | b->all[BLACK];
 
     int p;
     bb blockers, ray;
@@ -199,18 +207,18 @@ bool is_attacked(board* b, int loc)
     int e = 1-p;
 
     // Check steppers.
-    if (KING_ATTACKS[loc] & b->kings[e]) return true;
-    if (KNIGHT_ATTACKS[loc] & b->knights[e]) return true;
+    if (KING_ATTACKS[loc] & b->pieces[KING][e]) return true;
+    if (KNIGHT_ATTACKS[loc] & b->pieces[KNIGHT][e]) return true;
 
     // Check orthogonal rays.
-    bb targets = b->rooks[e] | b->queens[e];
+    bb targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
     if (RAY_ATTACKS_ALL[loc][ORTH] & targets)
     {
         if (is_orth_attacked(b, loc, targets, RAY_ATTACKS)) return true;
     }
 
     // Check diagonal rays.
-    targets = b->bishops[e] | b->queens[e];
+    targets = b->pieces[BISHOP][e] | b->pieces[QUEEN][e];
     if (RAY_ATTACKS_ALL[loc][DIAG] & targets)
     {
         if (is_diag_attacked(b, loc, targets, RAY_ATTACKS)) return true;
@@ -218,7 +226,7 @@ bool is_attacked(board* b, int loc)
 
     // Check pawns.
     bb l = (bb)1 << loc;
-    bb pawns = b->pawns[e];
+    bb pawns = b->pieces[PAWN][e];
     bb attackers = p == WHITE ? l << 7 : l >> 7;
     attackers |= (p == WHITE ? l << 9 : l >> 9);
     if (attackers & pawns) return true;
@@ -228,7 +236,7 @@ bool is_attacked(board* b, int loc)
 
 bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
 {
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb all = b->all[WHITE] | b->all[BLACK];
     bb ray, attackers;
 
     ray = rays[loc][N];
@@ -268,7 +276,7 @@ bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
 
 bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
 {
-    bb all = b->pieces[WHITE] | b->pieces[BLACK];
+    bb all = b->all[WHITE] | b->all[BLACK];
     bb ray, attackers;
 
     ray = rays[loc][NE];
@@ -310,17 +318,17 @@ void add_moves(int loc, move_list* l, bb ends)
 {
     while (ends)
     {
-        add_move(l, create_move(loc, pop_lsb(&ends), NONE));
+        add_move(l, create_move(loc, pop_lsb(&ends), NONE, NORMAL));
     }
 }
 
-void add_pawn_moves(bb ends, move_list* l, int d)
+void add_pawn_moves(bb ends, move_list* l, int d, MOVE_TYPE type)
 {
     int loc;
     while (ends)
     {
         loc = pop_lsb(&ends);
-        add_move(l, create_move(loc-d, loc, NONE));
+        add_move(l, create_move(loc-d, loc, NONE, type));
     }
 }
 
@@ -330,10 +338,10 @@ void add_promo_moves(bb ends, move_list* l, int d)
     while (ends)
     {
         loc = pop_lsb(&ends);
-        add_move(l, create_move(loc-d, loc, KNIGHT));
-        add_move(l, create_move(loc-d, loc, BISHOP));
-        add_move(l, create_move(loc-d, loc, ROOK));
-        add_move(l, create_move(loc-d, loc, QUEEN));
+        add_move(l, create_move(loc-d, loc, KNIGHT, PROMOTION));
+        add_move(l, create_move(loc-d, loc, BISHOP, PROMOTION));
+        add_move(l, create_move(loc-d, loc, ROOK, PROMOTION));
+        add_move(l, create_move(loc-d, loc, QUEEN, PROMOTION));
     }
 }
 

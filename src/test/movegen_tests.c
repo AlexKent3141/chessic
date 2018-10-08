@@ -42,11 +42,17 @@ char* movegen_test4()
     return movegen_test("r3kr2/8/8/8/8/8/2p5/R3K2R w KQkq - - 0 1", 24);
 }
 
+char* movegen_test5()
+{
+    return movegen_test("rnbqkbnr/ppp1pppp/8/2PpP3/8/8/PP1P1PPP/RNBQKBNR w KQkq d6 0 1", 34);
+}
+
 char* all_movegen_tests()
 {
     mu_run_test(movegen_test1);
     mu_run_test(movegen_test2);
     mu_run_test(movegen_test3);
     mu_run_test(movegen_test4);
+    mu_run_test(movegen_test5);
     return NULL;
 }

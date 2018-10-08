@@ -149,29 +149,33 @@ void set_piece_from_fen(board* b, int loc, char c)
 {
     int col = isupper(c) ? WHITE : BLACK;
     char l = tolower(c);
-    bb bit = (bb)1 << loc;
-    b->pieces[col] |= bit;
+    int type;
     switch (l)
     {
         case 'p':
-            b->pawns[col] |= bit;
+            type = PAWN;
             break;
         case 'n':
-            b->knights[col] |= bit;
+            type = KNIGHT;
             break;
         case 'b':
-            b->bishops[col] |= bit;
+            type = BISHOP;
             break;
         case 'r':
-            b->rooks[col] |= bit;
+            type = ROOK;
             break;
         case 'q':
-            b->queens[col] |= bit;
+            type = QUEEN;
             break;
         case 'k':
-            b->kings[col] |= bit;
+            type = KING;
             break;
     }
+
+    bb bit = (bb)1 << loc;
+    b->all[col] |= bit;
+    b->pieces[type][col] |= bit;
+    b->squares[loc] = create_piece(col, type);
 }
 
 char fen_from_piece(int col, int type)
