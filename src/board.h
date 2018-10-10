@@ -8,4 +8,7 @@ board* create_board_empty();
 // Get the colour and piece type at the specified location.
 void loc_details(board*, int, int*, int*);
 
+piece remove_piece(board*, int);
+void add_piece(board*, int, piece);
+
 #endif // __CHESSIC_BOARD_H__

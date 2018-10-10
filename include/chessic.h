@@ -61,7 +61,7 @@ typedef struct
 typedef struct
 {
     move last_move;         // The move that was applied to reach this state.
-    int cap;                // The piece that was captured on the last move.
+    piece cap;              // The piece that was captured on the last move.
     int ep;                 // The index of the square where an en-passent capture is possible.
     int plies_50_move;      // The plies since the last move that reset the 50 move rule.
     castling crs[2];        // The castling rights for each player.
@@ -100,7 +100,7 @@ void undo_move(board*); // Undo the last made move.
 // Methods for creating and interacting with pieces.
 piece create_piece(char, char);
 char get_piece_colour(piece);
-char get_piece_type(piece);
+PIECE_TYPE get_piece_type(piece);
 
 // Methods for creating and interacting with moves.
 move create_move(char, char, char, char);

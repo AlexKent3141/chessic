@@ -10,7 +10,7 @@ char get_piece_colour(piece p)
     return p & 0x1;
 }
 
-char get_piece_type(piece p)
+PIECE_TYPE get_piece_type(piece p)
 {
     return p >> 1;
 }
