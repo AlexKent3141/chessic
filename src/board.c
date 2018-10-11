@@ -26,6 +26,26 @@ board* create_board_empty()
     return b;
 }
 
+board* copy_board(board* b)
+{
+    board* copy = malloc(sizeof(board));
+    memcpy(copy, b, sizeof(board));
+    return copy;
+}
+
+bool board_equal(board* b1, board* b2)
+{
+    bool equal = true;
+    for (int i = 0; i < SQUARE_NB; i++) equal &= (b1->squares[i] == b2->squares[i]);
+    for (int p = PAWN; p <= KING; p++) equal &= (b1->pieces[p][WHITE] == b2->pieces[p][WHITE]);
+    for (int p = PAWN; p <= KING; p++) equal &= (b1->pieces[p][BLACK] == b2->pieces[p][BLACK]);
+
+    equal &= (b1->all[WHITE] == b2->all[WHITE]);
+    equal &= (b1->all[BLACK] == b2->all[BLACK]);
+
+    return equal;
+}
+
 bool make_move(board* b, move m)
 {
     assert(b != NULL);
@@ -58,8 +78,8 @@ bool make_move(board* b, move m)
     else if (mt & CASTLE)
     {
         // Move the corresponding rook.
-        int start_file = mt == KINGCASTLE ? 0 : 7;
-        int end_file = mt == KINGCASTLE ? 4 : 3;
+        int start_file = mt == KINGCASTLE ? 7 : 0;
+        int end_file = mt == KINGCASTLE ? 5 : 3;
         int rank = p == WHITE ? 0 : 7;
 
         piece rook = b->squares[8*rank + start_file];
@@ -92,17 +112,20 @@ bool make_move(board* b, move m)
     if (mt == TWOSPACE) ep = e + (p == WHITE ? -8 : 8);
 
     // Clone the previous board state.
-    state next = *b->bs;
-    next.last_move = m;
-    next.cap = cap;
-    next.crs[p] = next_crs;
-    next.ep = ep;
+    state* next = malloc(sizeof(state));
+    memcpy(next, b->bs, sizeof(state));
+    next->last_move = m;
+    next->cap = cap;
+    next->crs[p] = next_crs;
+    next->ep = ep;
 
-    ++next.plies_50_move;
-    if (cap || pt == PAWN) next.plies_50_move = 0;
+    ++next->plies_50_move;
+    if (cap || pt == PAWN) next->plies_50_move = 0;
 
-    next.previous = (struct state*)b->bs;
-    b->bs = &next;
+    next->previous = (struct state*)b->bs;
+    b->bs = next;
+
+    b->player = 1 - p;
 
     // TODO: was the move illegal i.e. the king ends in check?
 
@@ -119,6 +142,7 @@ void undo_move(board* b)
     int cap = b->bs->cap;
 
     b->bs = (state*)b->bs->previous;
+    b->player = 1 - b->player;
 
     int p = b->player;
     int s = get_start(m);
@@ -129,7 +153,6 @@ void undo_move(board* b)
 
     remove_piece(b, e);
 
-    PIECE_TYPE pt = get_piece_type(pc);
     MOVE_TYPE mt = get_move_type(m);
     if (mt == PROMOTION) set_piece_type(&pc, PAWN);
 
@@ -145,8 +168,8 @@ void undo_move(board* b)
     if (mt & CASTLE)
     {
         // Move the corresponding rook back.
-        int start_file = mt == KINGCASTLE ? 4 : 3;
-        int end_file = mt == KINGCASTLE ? 0 : 7;
+        int start_file = mt == KINGCASTLE ? 5 : 3;
+        int end_file = mt == KINGCASTLE ? 7 : 0;
         int rank = p == WHITE ? 0 : 7;
 
         piece rook = b->squares[8*rank + start_file];
@@ -161,8 +184,8 @@ void undo_move(board* b)
 
 piece remove_piece(board* b, int loc)
 {
-    int p = b->player;
     piece pc = b->squares[loc];
+    int p = get_piece_colour(pc);
     PIECE_TYPE pt = get_piece_type(pc);
 
     bb bit = (bb)1 << loc;
@@ -175,7 +198,7 @@ piece remove_piece(board* b, int loc)
 
 void add_piece(board* b, int loc, piece pc)
 {
-    int p = b->player;
+    int p = get_piece_colour(pc);
     PIECE_TYPE pt = get_piece_type(pc);
 
     bb bit = (bb)1 << loc;

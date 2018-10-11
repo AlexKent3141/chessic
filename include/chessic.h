@@ -91,6 +91,8 @@ void print_bb(bb);
 // Methods for creating and interacting with the board.
 board* board_from_fen(const char*);
 char* fen_from_board(board*);
+board* copy_board(board*);
+bool board_equal(board*, board*);
 void free_board(board*);
 void print_board(board*);
 move_list* get_moves(board*, MOVE_TYPE); // Generate pseudo-legal moves.
