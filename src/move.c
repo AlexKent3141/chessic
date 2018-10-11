@@ -8,7 +8,7 @@
 // 3 bits for the promotion piece type
 // 6 bits for the move type
 
-move create_move(char start, char end, char promo, char type)
+move create_move(char start, char end, PIECE_TYPE promo, MOVE_TYPE type)
 {
     return start + (end << 6) + (promo << 12) + (type << 15);
 }
@@ -23,12 +23,12 @@ char get_end(move m)
     return (m >> 6) & 0x3F;
 }
 
-char get_promotion(move m)
+PIECE_TYPE get_promotion(move m)
 {
     return (m >> 12) & 0x7;
 }
 
-char get_move_type(move m)
+MOVE_TYPE get_move_type(move m)
 {
     return (m >> 15) & 0x3F;
 }

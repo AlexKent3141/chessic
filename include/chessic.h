@@ -98,16 +98,17 @@ bool make_move(board*, move); // Attempt to make the move (returns false if it's
 void undo_move(board*); // Undo the last made move.
 
 // Methods for creating and interacting with pieces.
-piece create_piece(char, char);
+piece create_piece(char, PIECE_TYPE);
 char get_piece_colour(piece);
 PIECE_TYPE get_piece_type(piece);
+void set_piece_type(piece*, PIECE_TYPE);
 
 // Methods for creating and interacting with moves.
-move create_move(char, char, char, char);
+move create_move(char, char, PIECE_TYPE, MOVE_TYPE);
 char get_start(move);
 char get_end(move);
-char get_promotion(move);
-char get_move_type(move);
+PIECE_TYPE get_promotion(move);
+MOVE_TYPE get_move_type(move);
 void print_move(move);
 move_list* make_move_list();
 void add_move(move_list*, move);

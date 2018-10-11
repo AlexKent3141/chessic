@@ -38,32 +38,41 @@ bool make_move(board* b, move m)
     piece sp = remove_piece(b, s);
     piece cap = b->squares[e];
 
-    if (cap) remove_piece(b, e);
-
-    add_piece(b, e, sp);
-
     PIECE_TYPE pt = get_piece_type(sp);
     MOVE_TYPE mt = get_move_type(m);
+
+    if (cap && mt != ENPASSENT) remove_piece(b, e);
+
     if (mt == ENPASSENT)
     {
+        assert(b->bs->ep != BAD_LOC);
+
         int cap_loc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        cap = b->squares[cap_loc];
         remove_piece(b, cap_loc);
+    }
+    else if (mt == PROMOTION)
+    {
+        set_piece_type(&sp, get_promotion(m));
     }
     else if (mt & CASTLE)
     {
         // Move the corresponding rook.
-        int file = mt == KINGCASTLE ? 0 : 7;
+        int start_file = mt == KINGCASTLE ? 0 : 7;
         int end_file = mt == KINGCASTLE ? 4 : 3;
         int rank = p == WHITE ? 0 : 7;
 
-        piece rook = b->squares[8*rank + file];
+        piece rook = b->squares[8*rank + start_file];
 
         assert(get_piece_type(rook) == ROOK);
         assert(get_piece_colour(rook) == p);
 
-        remove_piece(b, 8*rank + file);
+        remove_piece(b, 8*rank + start_file);
         add_piece(b, 8*rank + end_file, rook);
     }
+
+    // Add the piece back now that the promotion has been applied.
+    add_piece(b, e, sp);
 
     castling next_crs = b->bs->crs[p];
     if (pt == KING)
@@ -102,6 +111,52 @@ bool make_move(board* b, move m)
 
 void undo_move(board* b)
 {
+    assert(b != NULL);
+    assert(b->bs != NULL);
+
+    // Extract the required info from the state and revert to previous.
+    move m = b->bs->last_move;
+    int cap = b->bs->cap;
+
+    b->bs = (state*)b->bs->previous;
+
+    int p = b->player;
+    int s = get_start(m);
+    int e = get_end(m);
+
+    // Move the pieces back.
+    piece pc = b->squares[e];
+
+    remove_piece(b, e);
+
+    PIECE_TYPE pt = get_piece_type(pc);
+    MOVE_TYPE mt = get_move_type(m);
+    if (mt == PROMOTION) set_piece_type(&pc, PAWN);
+
+    add_piece(b, s, pc);
+
+    if (cap)
+    {
+        int cap_loc = e;
+        if (mt == ENPASSENT) cap_loc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        add_piece(b, cap_loc, cap);
+    }
+
+    if (mt & CASTLE)
+    {
+        // Move the corresponding rook back.
+        int start_file = mt == KINGCASTLE ? 4 : 3;
+        int end_file = mt == KINGCASTLE ? 0 : 7;
+        int rank = p == WHITE ? 0 : 7;
+
+        piece rook = b->squares[8*rank + start_file];
+
+        assert(get_piece_type(rook) == ROOK);
+        assert(get_piece_colour(rook) == p);
+
+        remove_piece(b, 8*rank + start_file);
+        add_piece(b, 8*rank + end_file, rook);
+    }
 }
 
 piece remove_piece(board* b, int loc)
