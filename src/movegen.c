@@ -80,7 +80,6 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
     }
 
     // Promotions.
-    // TODO: Deal with wrapping!
     bb pawns = b->pieces[PAWN][p] & promo;
     if (pawns)
     {

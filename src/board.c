@@ -282,8 +282,10 @@ bool is_attacked(board* b, int loc)
     // Check pawns.
     bb l = (bb)1 << loc;
     bb pawns = b->pieces[PAWN][e];
-    bb attackers = p == WHITE ? l << 7 : l >> 7;
-    attackers |= (p == WHITE ? l << 9 : l >> 9);
+
+    bb attackers = 0;
+    if (!(l & FILES[0])) attackers |= e == WHITE ? l >> 9 : l << 7;
+    if (!(l & FILES[7])) attackers |= e == WHITE ? l >> 7 : l << 9;
     if (attackers & pawns) return true;
 
     return false;
