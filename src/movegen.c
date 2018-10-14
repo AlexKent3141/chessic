@@ -29,8 +29,8 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
     bb all = b->all[WHITE] | b->all[BLACK];
     bb promo = p == WHITE ? RANKS[6] : RANKS[1];
     int forward = p == WHITE ? FILE_NB : -FILE_NB;
-    int cap1 = FILE_NB-1;
-    int cap2 = FILE_NB+1;
+    int cap_left = FILE_NB-1;
+    int cap_right = FILE_NB+1;
 
     // Single and double pawn pushes (without promotions).
     if (type & QUIETS)
@@ -50,11 +50,17 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
     if (type & CAPTURES)
     {
         bb pawns = b->pieces[PAWN][p] & ~promo;
-        bb left_caps = p == WHITE ? pawns << cap1 : pawns >> cap1;
-        bb right_caps = p == WHITE ? pawns << cap2 : pawns >> cap2;
 
-        add_pawn_moves(left_caps & enemies, l, cap1, NORMAL);
-        add_pawn_moves(right_caps & enemies, l, cap2, NORMAL);
+        // Ensure that no captures wrap around the board.
+        bb left_cap_pawns = pawns & ~FILES[0];
+        bb right_cap_pawns = pawns & ~FILES[7];
+
+        // Defining left and right from white's perspective...
+        bb left_caps = p == WHITE ? left_cap_pawns << cap_left : left_cap_pawns >> cap_right;
+        bb right_caps = p == WHITE ? right_cap_pawns << cap_right : right_cap_pawns >> cap_left;
+
+        add_pawn_moves(left_caps & enemies, l, p == WHITE ? cap_left : -cap_right, NORMAL);
+        add_pawn_moves(right_caps & enemies, l, p == WHITE ? cap_right : -cap_left, NORMAL);
 
         int ep_loc = b->bs->ep;
         if (ep_loc != BAD_LOC)
@@ -62,14 +68,19 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
             bb ep = (bb)1 << ep_loc;
 
             // Need to shift "backwards" from the ep location.
-            bb caps = p == WHITE ? ep >> cap1 : ep << cap1;
-            caps |= p == WHITE ? ep >> cap2 : ep << cap2;
+            bb caps = 0;
+            if (!(ep & FILES[0])) caps |= p == WHITE ? ep >> cap_right : ep << cap_left;
+            if (!(ep & FILES[7])) caps |= p == WHITE ? ep >> cap_left : ep << cap_right;
+
+            caps &= pawns;
+
             while (caps)
                 add_move(l, create_move(pop_lsb(&caps), ep_loc, NONE, ENPASSENT));
         }
     }
 
     // Promotions.
+    // TODO: Deal with wrapping!
     bb pawns = b->pieces[PAWN][p] & promo;
     if (pawns)
     {
@@ -80,14 +91,16 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
 
         if (type & CAPTURES)
         {
-            bb left_caps = p == WHITE ? pawns << cap1 : pawns >> cap1;
-            bb right_caps = p == WHITE ? pawns << cap2 : pawns >> cap2;
+            // Ensure that no captures wrap around the board.
+            bb left_cap_pawns = pawns & ~FILES[0];
+            bb right_cap_pawns = pawns & ~FILES[7];
 
-            left_caps &= enemies;
-            right_caps &= enemies;
+            // Defining left and right from white's perspective...
+            bb left_caps = p == WHITE ? left_cap_pawns << cap_left : left_cap_pawns >> cap_right;
+            bb right_caps = p == WHITE ? right_cap_pawns << cap_right : right_cap_pawns >> cap_left;
 
-            add_promo_moves(left_caps, l, cap1);
-            add_promo_moves(right_caps, l, cap2);
+            add_promo_moves(left_caps & enemies, l, p == WHITE ? cap_left : -cap_right);
+            add_promo_moves(right_caps & enemies, l, p == WHITE ? cap_right : -cap_left);
         }
     }
 }
@@ -110,7 +123,7 @@ void find_castling_moves(board* b, move_list* l)
     int start_loc = p == WHITE ? 4 : 60;
     if (b->bs->crs[p].ks)
     {
-        if (!test(all, start_loc+1)    && !test(all, start_loc+2)
+        if (!test(all, start_loc+1) && !test(all, start_loc+2)
          && !is_attacked(b, start_loc) && !is_attacked(b, start_loc+1))
         {
             add_move(l, create_move(start_loc, start_loc+2, NONE, KINGCASTLE));
@@ -201,119 +214,6 @@ void find_stepper_moves(board* b, move_list* l, bb steppers, bb targets, bb* att
     }
 }
 
-bool is_attacked(board* b, int loc)
-{
-    int p = b->player;
-    int e = 1-p;
-
-    // Check steppers.
-    if (KING_ATTACKS[loc] & b->pieces[KING][e]) return true;
-    if (KNIGHT_ATTACKS[loc] & b->pieces[KNIGHT][e]) return true;
-
-    // Check orthogonal rays.
-    bb targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
-    if (RAY_ATTACKS_ALL[loc][ORTH] & targets)
-    {
-        if (is_orth_attacked(b, loc, targets, RAY_ATTACKS)) return true;
-    }
-
-    // Check diagonal rays.
-    targets = b->pieces[BISHOP][e] | b->pieces[QUEEN][e];
-    if (RAY_ATTACKS_ALL[loc][DIAG] & targets)
-    {
-        if (is_diag_attacked(b, loc, targets, RAY_ATTACKS)) return true;
-    }
-
-    // Check pawns.
-    bb l = (bb)1 << loc;
-    bb pawns = b->pieces[PAWN][e];
-    bb attackers = p == WHITE ? l << 7 : l >> 7;
-    attackers |= (p == WHITE ? l << 9 : l >> 9);
-    if (attackers & pawns) return true;
-
-    return false;
-}
-
-bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
-{
-    bb all = b->all[WHITE] | b->all[BLACK];
-    bb ray, attackers;
-
-    ray = rays[loc][N];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[lsb(attackers)][N]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][E];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[lsb(attackers)][E]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][S];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[msb(attackers)][S]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][W];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[msb(attackers)][W]);
-        if (!(ray & all)) return true;
-    }
-
-    return false;
-}
-
-bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
-{
-    bb all = b->all[WHITE] | b->all[BLACK];
-    bb ray, attackers;
-
-    ray = rays[loc][NE];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[lsb(attackers)][NE]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][NW];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[lsb(attackers)][NW]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][SE];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[msb(attackers)][SE]);
-        if (!(ray & all)) return true;
-    }
-
-    ray = rays[loc][SW];
-    attackers = ray & targets;
-    if (attackers)
-    {
-        ray ^= (attackers | rays[msb(attackers)][SW]);
-        if (!(ray & all)) return true;
-    }
-
-    return false;
-}
-
 void add_moves(int loc, move_list* l, bb ends)
 {
     while (ends)
@@ -344,4 +244,3 @@ void add_promo_moves(bb ends, move_list* l, int d)
         add_move(l, create_move(loc-d, loc, QUEEN, PROMOTION));
     }
 }
-

@@ -11,6 +11,8 @@
 #define BAD_LOC -1
 #define MAX_MOVES 250
 
+#define MAX_FEN_LENGTH 100
+
 typedef uint64_t bb; // This is the bit board type.
 typedef uint32_t move;
 typedef uint16_t piece;
@@ -98,6 +100,7 @@ void print_board(board*);
 move_list* get_moves(board*, MOVE_TYPE); // Generate pseudo-legal moves.
 bool make_move(board*, move); // Attempt to make the move (returns false if it's illegal).
 void undo_move(board*); // Undo the last made move.
+bool is_attacked(board*, int);
 
 // Methods for creating and interacting with pieces.
 piece create_piece(char, PIECE_TYPE);

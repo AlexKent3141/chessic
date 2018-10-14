@@ -1,4 +1,5 @@
 #include "board.h"
+#include "bits.h"
 #include "utils.h"
 #include "assert.h"
 #include "stdlib.h"
@@ -94,18 +95,27 @@ bool make_move(board* b, move m)
     // Add the piece back now that the promotion has been applied.
     add_piece(b, e, sp);
 
-    castling next_crs = b->bs->crs[p];
+    castling my_crs = b->bs->crs[p];
     if (pt == KING)
     {
-        next_crs.ks = false;
-        next_crs.qs = false;
+        my_crs.ks = false;
+        my_crs.qs = false;
     }
     else if (pt == ROOK)
     {
         int king_rook = p == WHITE ? 7 : 63;
         int queen_rook = p == WHITE ? 0 : 56;
-        next_crs.ks &= (s != king_rook);
-        next_crs.qs &= (s != queen_rook);
+        my_crs.ks &= (s != king_rook);
+        my_crs.qs &= (s != queen_rook);
+    }
+
+    castling their_crs = b->bs->crs[1-p];
+    if (cap && get_piece_type(cap) == ROOK)
+    {
+        int enemy_king_rook = p == WHITE ? 63 : 7;
+        int enemy_queen_rook = p == WHITE ? 56 : 0;
+        their_crs.ks &= (e != enemy_king_rook);
+        their_crs.qs &= (e != enemy_queen_rook);
     }
 
     int ep = BAD_LOC;
@@ -116,7 +126,8 @@ bool make_move(board* b, move m)
     memcpy(next, b->bs, sizeof(state));
     next->last_move = m;
     next->cap = cap;
-    next->crs[p] = next_crs;
+    next->crs[p] = my_crs;
+    next->crs[1-p] = their_crs;
     next->ep = ep;
 
     ++next->plies_50_move;
@@ -125,9 +136,15 @@ bool make_move(board* b, move m)
     next->previous = (struct state*)b->bs;
     b->bs = next;
 
-    b->player = 1 - p;
+    // Ensure legality: the king cannot end in check.
+    if (is_attacked(b, lsb(b->pieces[KING][p])))
+    {
+        b->player = 1 - p;
+        undo_move(b);
+        return false;
+    }
 
-    // TODO: was the move illegal i.e. the king ends in check?
+    b->player = 1 - p;
 
     return true;
 }
@@ -138,10 +155,12 @@ void undo_move(board* b)
     assert(b->bs != NULL);
 
     // Extract the required info from the state and revert to previous.
-    move m = b->bs->last_move;
-    int cap = b->bs->cap;
+    state* old = b->bs;
+    move m = old->last_move;
+    int cap = old->cap;
+    b->bs = (state*)old->previous;
+    free(old);
 
-    b->bs = (state*)b->bs->previous;
     b->player = 1 - b->player;
 
     int p = b->player;
@@ -235,4 +254,117 @@ void print_board(board* b)
 
         putchar('\n');
     }
+}
+
+bool is_attacked(board* b, int loc)
+{
+    int p = b->player;
+    int e = 1-p;
+
+    // Check steppers.
+    if (KING_ATTACKS[loc] & b->pieces[KING][e]) return true;
+    if (KNIGHT_ATTACKS[loc] & b->pieces[KNIGHT][e]) return true;
+
+    // Check orthogonal rays.
+    bb targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
+    if (RAY_ATTACKS_ALL[loc][ORTH] & targets)
+    {
+        if (is_orth_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+    }
+
+    // Check diagonal rays.
+    targets = b->pieces[BISHOP][e] | b->pieces[QUEEN][e];
+    if (RAY_ATTACKS_ALL[loc][DIAG] & targets)
+    {
+        if (is_diag_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+    }
+
+    // Check pawns.
+    bb l = (bb)1 << loc;
+    bb pawns = b->pieces[PAWN][e];
+    bb attackers = p == WHITE ? l << 7 : l >> 7;
+    attackers |= (p == WHITE ? l << 9 : l >> 9);
+    if (attackers & pawns) return true;
+
+    return false;
+}
+
+bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+{
+    bb all = b->all[WHITE] | b->all[BLACK];
+    bb ray, attackers;
+
+    ray = rays[loc][N];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][N]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][E];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][E]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][S];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][S]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][W];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][W]);
+        if (!(ray & all)) return true;
+    }
+
+    return false;
+}
+
+bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+{
+    bb all = b->all[WHITE] | b->all[BLACK];
+    bb ray, attackers;
+
+    ray = rays[loc][NE];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][NE]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][NW];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[lsb(attackers)][NW]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][SE];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][SE]);
+        if (!(ray & all)) return true;
+    }
+
+    ray = rays[loc][SW];
+    attackers = ray & targets;
+    if (attackers)
+    {
+        ray ^= (attackers | rays[msb(attackers)][SW]);
+        if (!(ray & all)) return true;
+    }
+
+    return false;
 }

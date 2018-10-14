@@ -16,8 +16,4 @@ void add_moves(int, move_list*, bb);
 void add_pawn_moves(bb, move_list*, int, MOVE_TYPE);
 void add_promo_moves(bb, move_list*, int);
 
-bool is_attacked(board*, int);
-bool is_orth_attacked(board*, int, bb, bb(*)[8]);
-bool is_diag_attacked(board*, int, bb, bb(*)[8]);
-
 #endif // __MOVE_GEN_H__

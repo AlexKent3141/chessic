@@ -15,8 +15,10 @@ char* make_undo_test(const char* fen)
         print_move(m);
 
         board* initial = copy_board(b);
-        make_move(b, m);
-        undo_move(b);
+        if (make_move(b, m))
+        {
+            undo_move(b);
+        }
 
         if (!board_equal(b, initial))
         {

@@ -71,7 +71,6 @@ board* board_from_fen(const char* fen)
 
 char* fen_from_board(board* b)
 {
-    const int MAX_FEN_LENGTH = 100;
     char* fen = malloc(MAX_FEN_LENGTH*sizeof(char));
     memset(fen, 0, MAX_FEN_LENGTH*sizeof(char));
 
