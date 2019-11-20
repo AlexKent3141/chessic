@@ -29,7 +29,7 @@ void load_test_cases()
 
             while ((token = strtok(NULL, ";")) != NULL)
             {
-                test_case test = {};
+                test_case test = { 0 };
                 test.depth = token[1] - '0';
                 test.expected = atoi(&token[3]);
                 memcpy(test.fen, fen, MAX_FEN_LENGTH*sizeof(char));

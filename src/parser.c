@@ -148,12 +148,9 @@ void set_piece_from_fen(board* b, int loc, char c)
 {
     int col = isupper(c) ? WHITE : BLACK;
     char l = tolower(c);
-    int type;
+    int type = PAWN;
     switch (l)
     {
-        case 'p':
-            type = PAWN;
-            break;
         case 'n':
             type = KNIGHT;
             break;
@@ -179,12 +176,9 @@ void set_piece_from_fen(board* b, int loc, char c)
 
 char fen_from_piece(int col, int type)
 {
-    char c;
+    char c = 'p';
     switch (type)
     {
-        case PAWN:
-            c = 'p';
-            break;
         case KNIGHT:
             c = 'n';
             break;

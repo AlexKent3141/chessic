@@ -14,10 +14,10 @@ move_list* get_moves(board* b, MOVE_TYPE type)
     find_king_moves(b, l, targets);
 
     bb orth = b->pieces[ROOK][b->player] | b->pieces[QUEEN][b->player];
-    find_orth_moves(b, l, type, orth, targets, RAY_ATTACKS);
+    find_orth_moves(b, l, orth, targets, RAY_ATTACKS);
 
     bb diag = b->pieces[BISHOP][b->player] | b->pieces[QUEEN][b->player];
-    find_diag_moves(b, l, type, diag, targets, RAY_ATTACKS);
+    find_diag_moves(b, l, diag, targets, RAY_ATTACKS);
 
     return l;
 }
@@ -106,12 +106,12 @@ void find_pawn_moves(board* b, move_list* l, MOVE_TYPE type)
 
 void find_knight_moves(board* b, move_list* l, bb targets)
 {
-    find_stepper_moves(b, l, b->pieces[KNIGHT][b->player], targets, KNIGHT_ATTACKS);
+    find_stepper_moves(l, b->pieces[KNIGHT][b->player], targets, KNIGHT_ATTACKS);
 }
 
 void find_king_moves(board* b, move_list* l, bb targets)
 {
-    find_stepper_moves(b, l, b->pieces[KING][b->player], targets, KING_ATTACKS);
+    find_stepper_moves(l, b->pieces[KING][b->player], targets, KING_ATTACKS);
     find_castling_moves(b, l);
 }
 
@@ -139,7 +139,7 @@ void find_castling_moves(board* b, move_list* l)
     }
 }
 
-void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
+void find_orth_moves(board* b, move_list* l, bb pieces, bb targets, bb (*rays)[8])
 {
     bb all = b->all[WHITE] | b->all[BLACK];
 
@@ -171,7 +171,7 @@ void find_orth_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targe
     }
 }
 
-void find_diag_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targets, bb (*rays)[8])
+void find_diag_moves(board* b, move_list* l, bb pieces, bb targets, bb (*rays)[8])
 {
     bb all = b->all[WHITE] | b->all[BLACK];
 
@@ -203,7 +203,7 @@ void find_diag_moves(board* b, move_list* l, MOVE_TYPE type, bb pieces, bb targe
     }
 }
 
-void find_stepper_moves(board* b, move_list* l, bb steppers, bb targets, bb* attacks)
+void find_stepper_moves(move_list* l, bb steppers, bb targets, bb* attacks)
 {
     int loc;
     while (steppers)

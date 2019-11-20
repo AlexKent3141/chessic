@@ -1,6 +1,6 @@
 APP=test
 CC=gcc
-CFLAGS=-Wall
+CFLAGS=-Wall -Wextra -pedantic -O3
 
 src=$(shell find src/ -type f -name '*.c')
 obj=$(src:.c=.o)
