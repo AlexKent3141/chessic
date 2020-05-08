@@ -4,15 +4,15 @@
 #include "stdlib.h"
 #include "string.h"
 
-int num_test_cases, current_test;
-test_case* test_cases;
+int numTestCases, currentTest;
+struct TestCase* testCases;
 
 // Load the test cases from the epd file in the test directory.
-void load_test_cases()
+void LoadTestCases()
 {
     const int MAX_TEST_CASES = 1000;
-    test_cases = malloc(MAX_TEST_CASES*sizeof(test_case));
-    num_test_cases = 0;
+    testCases = malloc(MAX_TEST_CASES*sizeof(struct TestCase));
+    numTestCases = 0;
 
     const size_t MAX_LINE_LENGTH = 255;
     char line[MAX_LINE_LENGTH];
@@ -29,12 +29,12 @@ void load_test_cases()
 
             while ((token = strtok(NULL, ";")) != NULL)
             {
-                test_case test = { 0 };
+                struct TestCase test = { 0 };
                 test.depth = token[1] - '0';
                 test.expected = atoi(&token[3]);
                 memcpy(test.fen, fen, MAX_FEN_LENGTH*sizeof(char));
 
-                test_cases[num_test_cases++] = test;
+                testCases[numTestCases++] = test;
             }
         }
     }
@@ -44,49 +44,52 @@ void load_test_cases()
     }
 }
 
-int perft(board* b, int depth)
+int Perft(struct Board* b, int depth)
 {
     if (depth == 0) return 1;
 
     int nodes = 0;
-    move_list* l = get_moves(b, ALL);
+    struct MoveList* l = GetMoves(b, ALL);
     for (int i = 0; i < l->n; i++)
     {
-        move m = l->moves[i];
-        if (make_move(b, m))
+        Move m = l->moves[i];
+        if (MakeMove(b, m))
         {
-            nodes += perft(b, depth-1);
-            undo_move(b);
+            nodes += Perft(b, depth-1);
+            UndoMove(b);
         }
     }
 
-    free_move_list(l);
+    FreeMoveList(l);
 
     return nodes;
 }
 
-char* perft_test()
+char* PerftTest()
 {
-    test_case test = test_cases[current_test];
-    printf("Position %s, Depth %d, Expected %d\n", test.fen, test.depth, test.expected);
+    struct TestCase test = testCases[currentTest];
+    printf("Position %s, Depth %d, Expected %d\n",
+        test.fen,
+        test.depth,
+        test.expected);
 
-    board* b = board_from_fen(test.fen);
-    int nodes = perft(b, test.depth);
+    struct Board* b = BoardFromFEN(test.fen);
+    int nodes = Perft(b, test.depth);
     printf("Got: %d\n", nodes);
     mu_assert("Incorrect perft value", nodes == test.expected);
-    free_board(b);
+    FreeBoard(b);
     return NULL;
 }
 
-char* all_perft_tests()
+char* AllPerftTests()
 {
-    load_test_cases();
+    LoadTestCases();
 
-    for (current_test = 0; current_test < num_test_cases; current_test++)
+    for (currentTest = 0; currentTest < numTestCases; currentTest++)
     {
-        mu_run_test(perft_test);
+        mu_run_test(PerftTest);
     }
 
-    free(test_cases);
+    free(testCases);
     return NULL;
 }

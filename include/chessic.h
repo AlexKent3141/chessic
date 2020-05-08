@@ -13,23 +13,22 @@
 
 #define MAX_FEN_LENGTH 100
 
-typedef uint64_t bb; // This is the bit board type.
-typedef uint32_t move;
-typedef uint16_t piece;
+typedef uint64_t BB; /* This is the bit board type. */
+typedef uint32_t Move;
+typedef uint16_t Piece;
 
-typedef enum
+enum Colour
 {
     WHITE, BLACK
-} COLOUR;
+};
 
-// The piece types.
-typedef enum
+/* The piece types. */
+enum PieceType
 {
     NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
-} PIECE_TYPE;
+};
 
-
-typedef enum
+enum MoveType
 {
     NORMAL = 0,
     TWOSPACE = 1,
@@ -38,85 +37,99 @@ typedef enum
     CASTLE = 8,
     KINGCASTLE = CASTLE | 16,
     QUEENCASTLE = CASTLE | 32
-} MOVE_TYPE;
+};
 
-typedef enum
+enum MoveGenType
 {
     QUIETS = 1,
     CAPTURES = 2,
     ALL = QUIETS | CAPTURES
-} MOVE_GEN_TYPE;
+};
 
-typedef struct
+struct MoveList
 {
-    move* moves;
-    move* end;
+    Move* moves;
+    Move* end;
     int n;
-} move_list;
+};
 
-typedef struct
+struct CastlingRights
 {
-    bool ks; // Whether the player can castle kingside.
-    bool qs; // Whether the player can castle queenside.
-} castling;
+    bool kingSide;  /* Whether the player can castle kingside. */
+    bool queenSide; /* Whether the player can castle queenside. */
+};
 
-typedef struct
+struct BoardState
 {
-    move last_move;         // The move that was applied to reach this state.
-    piece cap;              // The piece that was captured on the last move.
-    int ep;                 // The index of the square where an en-passent capture is possible.
-    int plies_50_move;      // The plies since the last move that reset the 50 move rule.
-    castling crs[2];        // The castling rights for each player.
-    struct state* previous; // The previous state data.
-} state;
+    Move lastMove;             /* The move that was applied to reach this state. */
+    Piece captureOnLastMove;   /* The piece that was captured on the last move. */
 
-typedef struct
+    /* The index of the square where an en-passent capture is possible. */
+    int enPassentIndex;
+
+    /* The number of plies since the last move that reset the 50 move rule. */
+    int plies50Move;
+
+    /* The castling rights for each player. */
+    struct CastlingRights castlingRights[2];
+
+    /* The previous game state. */
+    struct BoardState* previousState;
+};
+
+struct Board
 {
-    int player;     // The player to move.
-    int turn;       // The number of full turns so far.
-    state* bs;      // The board state which varies per move.
-    piece squares[SQUARE_NB]; // The pieces stored as an array.
+    int player;               /* The player to move. */
+    int turnNumber;           /* The number of full turns so far. */
+    struct BoardState* bs;    /* The state which varies per move. */
+    Piece squares[SQUARE_NB]; /* The pieces on each square. */
+    BB all[2];                /* All pieces for each player. */
+    BB pieces[7][2];          /* The pieces of each type for each player. */
+};
 
-    bb all[2]; // All pieces for each player.
-    bb pieces[7][2]; // The pieces of each type for each player.
-} board;
+/* Methods for interacting with bit boards. */
+void InitBits(); /* This must be called before generating moves! */
+int PopLSB(BB*);
+int PopMSB(BB*);
+int LSB(BB);
+int MSB(BB);
+bool Test(BB, int);
+void PrintBB(BB);
 
-// Methods for interacting with bit boards.
-void init_bits(); // This must be called before generating moves!
-int pop_lsb(bb*);
-int pop_msb(bb*);
-int lsb(bb);
-int msb(bb);
-bool test(bb, int);
-void print_bb(bb);
+/* Methods for creating and interacting with the board. */
+struct Board* BoardFromFEN(const char*);
+char* FENFromBoard(struct Board*);
+struct Board* CopyBoard(struct Board*);
+bool BoardEqual(struct Board*, struct Board*);
+void FreeBoard(struct Board*);
+void PrintBoard(struct Board*);
 
-// Methods for creating and interacting with the board.
-board* board_from_fen(const char*);
-char* fen_from_board(board*);
-board* copy_board(board*);
-bool board_equal(board*, board*);
-void free_board(board*);
-void print_board(board*);
-move_list* get_moves(board*, MOVE_TYPE); // Generate pseudo-legal moves.
-bool make_move(board*, move); // Attempt to make the move (returns false if it's illegal).
-void undo_move(board*); // Undo the last made move.
-bool is_attacked(board*, int);
+/* Generate pseudo-legal moves. */
+struct MoveList* GetMoves(struct Board*, enum MoveType);
 
-// Methods for creating and interacting with pieces.
-piece create_piece(char, PIECE_TYPE);
-char get_piece_colour(piece);
-PIECE_TYPE get_piece_type(piece);
-void set_piece_type(piece*, PIECE_TYPE);
+/* Attempt to make the move (returns false if it's illegal). */
+bool MakeMove(struct Board*, Move);
 
-// Methods for creating and interacting with moves.
-move create_move(char, char, PIECE_TYPE, MOVE_TYPE);
-char get_start(move);
-char get_end(move);
-PIECE_TYPE get_promotion(move);
-MOVE_TYPE get_move_type(move);
-void print_move(move);
-move_list* make_move_list();
-void add_move(move_list*, move);
-void free_move_list(move_list*);
+/* Undo the last made move. */
+void UndoMove(struct Board*);
 
-#endif // __CHESSIC_H__
+bool IsAttacked(struct Board*, int);
+
+/* Methods for creating and interacting with pieces. */
+Piece CreatePiece(char, enum PieceType);
+char GetPieceColour(Piece);
+enum PieceType GetPieceType(Piece);
+void SetPieceType(Piece*, enum PieceType);
+
+/* Methods for creating and interacting with moves. */
+Move CreateMove(char, char, enum PieceType, enum MoveType);
+char GetMoveStart(Move);
+char GetMoveEnd(Move);
+enum PieceType GetMovePromotion(Move);
+enum MoveType GetMoveType(Move);
+void PrintMove(Move);
+struct MoveList* MakeMoveList();
+void AddMove(struct MoveList*, Move);
+void FreeMoveList(struct MoveList*);
+
+#endif /* __CHESSIC_H__ */

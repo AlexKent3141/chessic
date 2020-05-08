@@ -3,26 +3,26 @@
 
 #include "../include/chessic.h"
 
-// This file contains all of the bit board constants that get pre-calculated.
+/* This file contains all of the bit board constants that get pre-calculated. */
 
 typedef enum
 {
-    N, S, W, E, NE, NW, SE,SW 
-} DIRECTIONS;
+    N, S, W, E, NE, NW, SE, SW 
+} Directions;
 
 typedef enum
 {
     ORTH, DIAG
-} RAY_TYPE;
+} RayType;
 
-extern bb RANKS[8];
-extern bb FILES[8];
-extern bb KNIGHT_ATTACKS[64];
-extern bb KING_ATTACKS[64];
-extern bb RAY_ATTACKS[64][8];
-extern bb RAY_ATTACKS_ALL[64][2];
+extern BB Ranks[8];
+extern BB Files[8];
+extern BB KnightAttacks[64];
+extern BB KingAttacks[64];
+extern BB RayAttacks[64][8];
+extern BB RayAttacksAll[64][2];
 
-void init_steppers();
-void init_rays();
+void InitSteppers();
+void InitRays();
 
-#endif // __BITS_H__
+#endif /* __BITS_H__ */

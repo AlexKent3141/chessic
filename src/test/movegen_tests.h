@@ -3,14 +3,14 @@
 
 #include "../../include/chessic.h"
 
-char* movegen_test(const char*, int);
+char* MoveGenTest(const char*, int);
 
-char* movegen_test1();
-char* movegen_test2();
-char* movegen_test3();
-char* movegen_test4();
-char* movegen_test5();
+char* MoveGenTest1();
+char* MoveGenTest2();
+char* MoveGenTest3();
+char* MoveGenTest4();
+char* MoveGenTest5();
 
-char* all_movegen_tests();
+char* AllMoveGenTests();
 
-#endif // __MOVEGEN_TESTS_H__
+#endif /* __MOVEGEN_TESTS_H__ */

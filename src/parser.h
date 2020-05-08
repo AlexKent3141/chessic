@@ -3,8 +3,8 @@
 
 #include "board.h"
 
-void set_piece_from_fen(board*, int, char);
-char fen_from_piece(int, int);
-int loc_from_fen(const char*);
+void SetPieceFromFEN(struct Board*, int, char);
+char FENFromPiece(int, int);
+int LocFromFEN(const char*);
 
-#endif // __PARSER_H__
+#endif /* __PARSER_H__ */

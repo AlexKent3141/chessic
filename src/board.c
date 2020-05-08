@@ -6,40 +6,43 @@
 #include "stdio.h"
 #include "string.h"
 
-board* create_board_empty()
+struct Board* CreateBoardEmpty()
 {
-    board* b = malloc(sizeof(board));
+    struct Board* b = malloc(sizeof(struct Board));
 
     b->player = WHITE;
-    b->turn = 0;
+    b->turnNumber = 0;
 
-    state* bs = malloc(sizeof(state));
-    memset(bs, 0, sizeof(state));
-    bs->ep = BAD_LOC;
-    bs->previous = NULL;
+    struct BoardState* bs = malloc(sizeof(struct BoardState));
+    memset(bs, 0, sizeof(struct BoardState));
+    bs->enPassentIndex = BAD_LOC;
+    bs->previousState = NULL;
     b->bs = bs;
 
-    memset(b->squares, 0, SQUARE_NB*sizeof(piece));
+    memset(b->squares, 0, SQUARE_NB*sizeof(Piece));
 
-    memset(b->all, 0, 2*sizeof(bb));
-    for (int i = 0; i <= KING; i++) memset(b->pieces[i], 0, 2*sizeof(bb));
+    memset(b->all, 0, 2*sizeof(BB));
+    for (int i = 0; i <= KING; i++) memset(b->pieces[i], 0, 2*sizeof(BB));
 
     return b;
 }
 
-board* copy_board(board* b)
+struct Board* CopyBoard(struct Board* b)
 {
-    board* copy = malloc(sizeof(board));
-    memcpy(copy, b, sizeof(board));
+    struct Board* copy = malloc(sizeof(struct Board));
+    memcpy(copy, b, sizeof(struct Board));
     return copy;
 }
 
-bool board_equal(board* b1, board* b2)
+bool BoardEqual(struct Board* b1, struct Board* b2)
 {
     bool equal = true;
-    for (int i = 0; i < SQUARE_NB; i++) equal &= (b1->squares[i] == b2->squares[i]);
-    for (int p = PAWN; p <= KING; p++) equal &= (b1->pieces[p][WHITE] == b2->pieces[p][WHITE]);
-    for (int p = PAWN; p <= KING; p++) equal &= (b1->pieces[p][BLACK] == b2->pieces[p][BLACK]);
+    for (int i = 0; i < SQUARE_NB; i++)
+        equal &= (b1->squares[i] == b2->squares[i]);
+    for (int p = PAWN; p <= KING; p++)
+        equal &= (b1->pieces[p][WHITE] == b2->pieces[p][WHITE]);
+    for (int p = PAWN; p <= KING; p++)
+        equal &= (b1->pieces[p][BLACK] == b2->pieces[p][BLACK]);
 
     equal &= (b1->all[WHITE] == b2->all[WHITE]);
     equal &= (b1->all[BLACK] == b2->all[BLACK]);
@@ -47,100 +50,100 @@ bool board_equal(board* b1, board* b2)
     return equal;
 }
 
-bool make_move(board* b, move m)
+bool MakeMove(struct Board* b, Move m)
 {
     assert(b != NULL);
     assert(b->bs != NULL);
 
     int p = b->player;
-    int s = get_start(m);
-    int e = get_end(m);
+    int s = GetMoveStart(m);
+    int e = GetMoveEnd(m);
 
-    piece sp = remove_piece(b, s);
-    piece cap = b->squares[e];
+    Piece sp = RemovePiece(b, s);
+    Piece cap = b->squares[e];
 
-    PIECE_TYPE pt = get_piece_type(sp);
-    MOVE_TYPE mt = get_move_type(m);
+    enum PieceType pt = GetPieceType(sp);
+    enum MoveType mt = GetMoveType(m);
 
-    if (cap && mt != ENPASSENT) remove_piece(b, e);
+    if (cap && mt != ENPASSENT) RemovePiece(b, e);
 
     if (mt == ENPASSENT)
     {
-        assert(b->bs->ep != BAD_LOC);
+        assert(b->bs->enPassentIndex != BAD_LOC);
 
-        int cap_loc = e + (p == WHITE ? -FILE_NB : FILE_NB);
-        cap = b->squares[cap_loc];
-        remove_piece(b, cap_loc);
+        int capLoc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        cap = b->squares[capLoc];
+        RemovePiece(b, capLoc);
     }
     else if (mt == PROMOTION)
     {
-        set_piece_type(&sp, get_promotion(m));
+        SetPieceType(&sp, GetMovePromotion(m));
     }
     else if (mt & CASTLE)
     {
         // Move the corresponding rook.
-        int start_file = mt == KINGCASTLE ? 7 : 0;
+        int startFile = mt == KINGCASTLE ? 7 : 0;
         int end_file = mt == KINGCASTLE ? 5 : 3;
         int rank = p == WHITE ? 0 : 7;
 
-        piece rook = b->squares[8*rank + start_file];
+        Piece rook = b->squares[8*rank + startFile];
 
-        assert(get_piece_type(rook) == ROOK);
-        assert(get_piece_colour(rook) == p);
+        assert(GetPieceType(rook) == ROOK);
+        assert(GetPieceColour(rook) == p);
 
-        remove_piece(b, 8*rank + start_file);
-        add_piece(b, 8*rank + end_file, rook);
+        RemovePiece(b, 8*rank + startFile);
+        AddPiece(b, 8*rank + end_file, rook);
     }
 
     // Add the piece back now that the promotion has been applied.
-    add_piece(b, e, sp);
+    AddPiece(b, e, sp);
 
-    castling my_crs = b->bs->crs[p];
+    struct CastlingRights ourCastlingRights = b->bs->castlingRights[p];
     if (pt == KING)
     {
-        my_crs.ks = false;
-        my_crs.qs = false;
+        ourCastlingRights.kingSide = false;
+        ourCastlingRights.queenSide = false;
     }
     else if (pt == ROOK)
     {
-        int king_rook = p == WHITE ? 7 : 63;
-        int queen_rook = p == WHITE ? 0 : 56;
-        my_crs.ks &= (s != king_rook);
-        my_crs.qs &= (s != queen_rook);
+        int kingRook = p == WHITE ? 7 : 63;
+        int queenRook = p == WHITE ? 0 : 56;
+        ourCastlingRights.kingSide &= (s != kingRook);
+        ourCastlingRights.queenSide &= (s != queenRook);
     }
 
-    castling their_crs = b->bs->crs[1-p];
-    if (cap && get_piece_type(cap) == ROOK)
+    struct CastlingRights theirCastlingRights = b->bs->castlingRights[1-p];
+    if (cap && GetPieceType(cap) == ROOK)
     {
-        int enemy_king_rook = p == WHITE ? 63 : 7;
-        int enemy_queen_rook = p == WHITE ? 56 : 0;
-        their_crs.ks &= (e != enemy_king_rook);
-        their_crs.qs &= (e != enemy_queen_rook);
+        int enemyKingRook = p == WHITE ? 63 : 7;
+        int enemyQueenRook = p == WHITE ? 56 : 0;
+        theirCastlingRights.kingSide &= (e != enemyKingRook);
+        theirCastlingRights.queenSide &= (e != enemyQueenRook);
     }
 
     int ep = BAD_LOC;
     if (mt == TWOSPACE) ep = e + (p == WHITE ? -8 : 8);
 
     // Clone the previous board state.
-    state* next = malloc(sizeof(state));
-    memcpy(next, b->bs, sizeof(state));
-    next->last_move = m;
-    next->cap = cap;
-    next->crs[p] = my_crs;
-    next->crs[1-p] = their_crs;
-    next->ep = ep;
+    struct BoardState* next = malloc(sizeof(struct BoardState));
+    memcpy(next, b->bs, sizeof(struct BoardState));
+    next->lastMove = m;
+    next->captureOnLastMove = cap;
+    next->castlingRights[p] = ourCastlingRights;
+    next->castlingRights[1-p] = theirCastlingRights;
+    next->enPassentIndex = ep;
 
-    ++next->plies_50_move;
-    if (cap || pt == PAWN) next->plies_50_move = 0;
+    ++next->plies50Move;
+    if (cap || pt == PAWN) next->plies50Move = 0;
 
-    next->previous = (struct state*)b->bs;
+    next->previousState = b->bs;
     b->bs = next;
 
     // Ensure legality: the king cannot end in check.
-    if (is_attacked(b, lsb(b->pieces[KING][p])))
+    if (IsAttacked(b, LSB(b->pieces[KING][p])))
     {
         b->player = 1 - p;
-        undo_move(b);
+        UndoMove(b);
         return false;
     }
 
@@ -149,65 +152,65 @@ bool make_move(board* b, move m)
     return true;
 }
 
-void undo_move(board* b)
+void UndoMove(struct Board* b)
 {
     assert(b != NULL);
     assert(b->bs != NULL);
 
     // Extract the required info from the state and revert to previous.
-    state* old = b->bs;
-    move m = old->last_move;
-    int cap = old->cap;
-    b->bs = (state*)old->previous;
+    struct BoardState* old = b->bs;
+    Move m = old->lastMove;
+    int cap = old->captureOnLastMove;
+    b->bs = old->previousState;
     free(old);
 
     b->player = 1 - b->player;
 
     int p = b->player;
-    int s = get_start(m);
-    int e = get_end(m);
+    int s = GetMoveStart(m);
+    int e = GetMoveEnd(m);
 
     // Move the pieces back.
-    piece pc = b->squares[e];
+    Piece pc = b->squares[e];
 
-    remove_piece(b, e);
+    RemovePiece(b, e);
 
-    MOVE_TYPE mt = get_move_type(m);
-    if (mt == PROMOTION) set_piece_type(&pc, PAWN);
+    enum MoveType mt = GetMoveType(m);
+    if (mt == PROMOTION) SetPieceType(&pc, PAWN);
 
-    add_piece(b, s, pc);
+    AddPiece(b, s, pc);
 
     if (cap)
     {
-        int cap_loc = e;
-        if (mt == ENPASSENT) cap_loc = e + (p == WHITE ? -FILE_NB : FILE_NB);
-        add_piece(b, cap_loc, cap);
+        int capLoc = e;
+        if (mt == ENPASSENT) capLoc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        AddPiece(b, capLoc, cap);
     }
 
     if (mt & CASTLE)
     {
         // Move the corresponding rook back.
-        int start_file = mt == KINGCASTLE ? 5 : 3;
-        int end_file = mt == KINGCASTLE ? 7 : 0;
+        int startFile = mt == KINGCASTLE ? 5 : 3;
+        int endFile = mt == KINGCASTLE ? 7 : 0;
         int rank = p == WHITE ? 0 : 7;
 
-        piece rook = b->squares[8*rank + start_file];
+        Piece rook = b->squares[8*rank + startFile];
 
-        assert(get_piece_type(rook) == ROOK);
-        assert(get_piece_colour(rook) == p);
+        assert(GetPieceType(rook) == ROOK);
+        assert(GetPieceColour(rook) == p);
 
-        remove_piece(b, 8*rank + start_file);
-        add_piece(b, 8*rank + end_file, rook);
+        RemovePiece(b, 8*rank + startFile);
+        AddPiece(b, 8*rank + endFile, rook);
     }
 }
 
-piece remove_piece(board* b, int loc)
+Piece RemovePiece(struct Board* b, int loc)
 {
-    piece pc = b->squares[loc];
-    int p = get_piece_colour(pc);
-    PIECE_TYPE pt = get_piece_type(pc);
+    Piece pc = b->squares[loc];
+    int p = GetPieceColour(pc);
+    enum PieceType pt = GetPieceType(pc);
 
-    bb bit = (bb)1 << loc;
+    BB bit = (BB)1 << loc;
     b->all[p] ^= bit;
     b->pieces[pt][p] ^= bit;
     b->squares[loc] = 0;
@@ -215,18 +218,18 @@ piece remove_piece(board* b, int loc)
     return pc;
 }
 
-void add_piece(board* b, int loc, piece pc)
+void AddPiece(struct Board* b, int loc, Piece pc)
 {
-    int p = get_piece_colour(pc);
-    PIECE_TYPE pt = get_piece_type(pc);
+    int p = GetPieceColour(pc);
+    enum PieceType pt = GetPieceType(pc);
 
-    bb bit = (bb)1 << loc;
+    BB bit = (BB)1 << loc;
     b->all[p] |= bit;
     b->pieces[pt][p] |= bit;
     b->squares[loc] = pc;
 }
 
-void free_board(board* b)
+void FreeBoard(struct Board* b)
 {
     if (b)
     {
@@ -235,72 +238,72 @@ void free_board(board* b)
     }
 }
 
-void loc_details(board* b, int loc, int* col, int* type)
+void LocDetails(struct Board* b, int loc, int* col, int* type)
 {
-    *col = get_piece_colour(b->squares[loc]);
-    *type = get_piece_type(b->squares[loc]);
+    *col = GetPieceColour(b->squares[loc]);
+    *type = GetPieceType(b->squares[loc]);
 }
 
-void print_board(board* b)
+void PrintBoard(struct Board* b)
 {
     int col, type;
     for (int r = 7; r >= 0; r--)
     {
         for (int f = 0; f < 8; f++)
         {
-            loc_details(b, 8*r+f, &col, &type);
-            putchar(loc_to_char(col, type));
+            LocDetails(b, 8*r+f, &col, &type);
+            putchar(LocToChar(col, type));
         }
 
         putchar('\n');
     }
 }
 
-bool is_attacked(board* b, int loc)
+bool IsAttacked(struct Board* b, int loc)
 {
     int p = b->player;
     int e = 1-p;
 
     // Check steppers.
-    if (KING_ATTACKS[loc] & b->pieces[KING][e]) return true;
-    if (KNIGHT_ATTACKS[loc] & b->pieces[KNIGHT][e]) return true;
+    if (KingAttacks[loc] & b->pieces[KING][e]) return true;
+    if (KnightAttacks[loc] & b->pieces[KNIGHT][e]) return true;
 
     // Check orthogonal rays.
-    bb targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
-    if (RAY_ATTACKS_ALL[loc][ORTH] & targets)
+    BB targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
+    if (RayAttacksAll[loc][ORTH] & targets)
     {
-        if (is_orth_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+        if (IsOrthAttacked(b, loc, targets, RayAttacks)) return true;
     }
 
     // Check diagonal rays.
     targets = b->pieces[BISHOP][e] | b->pieces[QUEEN][e];
-    if (RAY_ATTACKS_ALL[loc][DIAG] & targets)
+    if (RayAttacksAll[loc][DIAG] & targets)
     {
-        if (is_diag_attacked(b, loc, targets, RAY_ATTACKS)) return true;
+        if (IsDiagAttacked(b, loc, targets, RayAttacks)) return true;
     }
 
     // Check pawns.
-    bb l = (bb)1 << loc;
-    bb pawns = b->pieces[PAWN][e];
+    BB bit = (BB)1 << loc;
+    BB pawns = b->pieces[PAWN][e];
 
-    bb attackers = 0;
-    if (!(l & FILES[0])) attackers |= e == WHITE ? l >> 9 : l << 7;
-    if (!(l & FILES[7])) attackers |= e == WHITE ? l >> 7 : l << 9;
+    BB attackers = 0;
+    if (!(bit & Files[0])) attackers |= e == WHITE ? bit >> 9 : bit << 7;
+    if (!(bit & Files[7])) attackers |= e == WHITE ? bit >> 7 : bit << 9;
     if (attackers & pawns) return true;
 
     return false;
 }
 
-bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+bool IsOrthAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
 {
-    bb all = b->all[WHITE] | b->all[BLACK];
-    bb ray, attackers;
+    BB all = b->all[WHITE] | b->all[BLACK];
+    BB ray, attackers;
 
     ray = rays[loc][N];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[lsb(attackers)][N]);
+        ray ^= (attackers | rays[LSB(attackers)][N]);
         if (!(ray & all)) return true;
     }
 
@@ -308,7 +311,7 @@ bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[lsb(attackers)][E]);
+        ray ^= (attackers | rays[LSB(attackers)][E]);
         if (!(ray & all)) return true;
     }
 
@@ -316,7 +319,7 @@ bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[msb(attackers)][S]);
+        ray ^= (attackers | rays[MSB(attackers)][S]);
         if (!(ray & all)) return true;
     }
 
@@ -324,23 +327,23 @@ bool is_orth_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[msb(attackers)][W]);
+        ray ^= (attackers | rays[MSB(attackers)][W]);
         if (!(ray & all)) return true;
     }
 
     return false;
 }
 
-bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
+bool IsDiagAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
 {
-    bb all = b->all[WHITE] | b->all[BLACK];
-    bb ray, attackers;
+    BB all = b->all[WHITE] | b->all[BLACK];
+    BB ray, attackers;
 
     ray = rays[loc][NE];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[lsb(attackers)][NE]);
+        ray ^= (attackers | rays[LSB(attackers)][NE]);
         if (!(ray & all)) return true;
     }
 
@@ -348,7 +351,7 @@ bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[lsb(attackers)][NW]);
+        ray ^= (attackers | rays[LSB(attackers)][NW]);
         if (!(ray & all)) return true;
     }
 
@@ -356,7 +359,7 @@ bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[msb(attackers)][SE]);
+        ray ^= (attackers | rays[MSB(attackers)][SE]);
         if (!(ray & all)) return true;
     }
 
@@ -364,7 +367,7 @@ bool is_diag_attacked(board* b, int loc, bb targets, bb (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[msb(attackers)][SW]);
+        ray ^= (attackers | rays[MSB(attackers)][SW]);
         if (!(ray & all)) return true;
     }
 

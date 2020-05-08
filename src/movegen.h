@@ -3,17 +3,17 @@
 
 #include "../include/chessic.h"
 
-void find_pawn_moves(board*, move_list*, MOVE_TYPE);
-void find_knight_moves(board*, move_list*, bb);
-void find_king_moves(board*, move_list*, bb);
+void FindPawnMoves(struct Board*, struct MoveList*, enum MoveType);
+void FindKnightMoves(struct Board*, struct MoveList*, BB);
+void FindKingMoves(struct Board*, struct MoveList*, BB);
 
-void find_castling_moves(board*, move_list*);
-void find_stepper_moves(move_list*, bb, bb, bb*);
-void find_orth_moves(board*, move_list*, bb, bb, bb(*)[8]);
-void find_diag_moves(board*, move_list*, bb, bb, bb(*)[8]);
+void FindCastlingMoves(struct Board*, struct MoveList*);
+void FindStepperMoves(struct MoveList*, BB, BB, BB*);
+void FindOrthMoves(struct Board*, struct MoveList*, BB, BB, BB(*)[8]);
+void FindDiagMoves(struct Board*, struct MoveList*, BB, BB, BB(*)[8]);
 
-void add_moves(int, move_list*, bb);
-void add_pawn_moves(bb, move_list*, int, MOVE_TYPE);
-void add_promo_moves(bb, move_list*, int);
+void AddMoves(int, struct MoveList*, BB);
+void AddPawnMoves(BB, struct MoveList*, int, enum MoveType);
+void AddPromoMoves(BB, struct MoveList*, int);
 
 #endif // __MOVE_GEN_H__

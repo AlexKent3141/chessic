@@ -6,24 +6,24 @@
 #include "stdlib.h"
 #include "string.h"
 
-board* board_from_fen(const char* fen)
+struct Board* BoardFromFEN(const char* fen)
 {
-    board* b = create_board_empty();
-    state* bs = b->bs;
+    struct Board* b = CreateBoardEmpty();
+    struct BoardState* bs = b->bs;
 
-    char* fen_dup = malloc(strlen(fen)*sizeof(char) + 1);
-    strcpy(fen_dup, fen);
+    char* fenDup = malloc(strlen(fen)*sizeof(char) + 1);
+    strcpy(fenDup, fen);
 
     // Get the piece definitions.
     char c;
-    char* token = strtok(fen_dup, " ");
+    char* token = strtok(fenDup, " ");
     int f = 0; int r = 7;
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
         if (isalpha(c))
         {
-            set_piece_from_fen(b, 8*r + f, c);
+            SetPieceFromFEN(b, 8*r + f, c);
             ++f;
         }
         else if (c == '/')
@@ -46,35 +46,35 @@ board* board_from_fen(const char* fen)
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
-        if      (c == 'K') bs->crs[WHITE].ks = true;
-        else if (c == 'Q') bs->crs[WHITE].qs = true;
-        else if (c == 'k') bs->crs[BLACK].ks = true;
-        else if (c == 'q') bs->crs[BLACK].qs = true;
+        if      (c == 'K') bs->castlingRights[WHITE].kingSide = true;
+        else if (c == 'Q') bs->castlingRights[WHITE].queenSide = true;
+        else if (c == 'k') bs->castlingRights[BLACK].kingSide = true;
+        else if (c == 'q') bs->castlingRights[BLACK].queenSide = true;
     }
 
     // Get the en-passent square.
     token = strtok(NULL, " ");
-    if (token[0] != '-') bs->ep = loc_from_fen(token);
+    if (token[0] != '-') bs->enPassentIndex = LocFromFEN(token);
 
     // Get the half-move count.
     token = strtok(NULL, " ");
-    bs->plies_50_move = atoi(token);
+    bs->plies50Move = atoi(token);
 
     // Get the full-move count.
     token = strtok(NULL, " ");
-    b->turn = atoi(token);
+    b->turnNumber = atoi(token);
 
-    free(fen_dup);
+    free(fenDup);
 
     return b;
 }
 
-char* fen_from_board(board* b)
+char* FENFromBoard(struct Board* b)
 {
     char* fen = malloc(MAX_FEN_LENGTH*sizeof(char));
     memset(fen, 0, MAX_FEN_LENGTH*sizeof(char));
 
-    state* bs = b->bs;
+    struct BoardState* bs = b->bs;
 
     // Set the piece definitions.
     int i = 0, e;
@@ -84,12 +84,12 @@ char* fen_from_board(board* b)
         e = 0;
         for (int f = 0; f < 8; f++)
         {
-            loc_details(b, 8*r+f, &col, &type);
+            LocDetails(b, 8*r+f, &col, &type);
             if (type != NONE)
             {
                 if (e) fen[i++] = e + '0';
                 e = 0;
-                fen[i++] = fen_from_piece(col, type);
+                fen[i++] = FENFromPiece(col, type);
             }
             else
             {
@@ -106,17 +106,17 @@ char* fen_from_board(board* b)
 
     fen[i++] = ' ';
     int start = i;
-    if (bs->crs[WHITE].ks) fen[i++] = 'K';
-    if (bs->crs[WHITE].qs) fen[i++] = 'Q';
-    if (bs->crs[BLACK].ks) fen[i++] = 'k';
-    if (bs->crs[BLACK].qs) fen[i++] = 'q';
+    if (bs->castlingRights[WHITE].kingSide) fen[i++] = 'K';
+    if (bs->castlingRights[WHITE].queenSide) fen[i++] = 'Q';
+    if (bs->castlingRights[BLACK].kingSide) fen[i++] = 'k';
+    if (bs->castlingRights[BLACK].queenSide) fen[i++] = 'q';
     if (i == start) fen[i++] = '-';
 
     fen[i++] = ' ';
-    if (bs->ep != BAD_LOC)
+    if (bs->enPassentIndex != BAD_LOC)
     {
-        fen[i++] = (bs->ep % 8) + 'a';
-        fen[i++] = (bs->ep / 8) + '1';
+        fen[i++] = (bs->enPassentIndex % 8) + 'a';
+        fen[i++] = (bs->enPassentIndex / 8) + '1';
     }
     else
     {
@@ -126,17 +126,17 @@ char* fen_from_board(board* b)
     fen[i++] = ' ';
 
     // Serialise the half-move count.
-    const int MAX_TURN_LENGTH = 10;
-    char* buf = malloc(MAX_TURN_LENGTH*sizeof(char));
-    memset(buf, 0, MAX_TURN_LENGTH*sizeof(char));
-    snprintf(buf, 10, "%d", bs->plies_50_move);
+    const int MaxTurnLength = 10;
+    char* buf = malloc(MaxTurnLength*sizeof(char));
+    memset(buf, 0, MaxTurnLength*sizeof(char));
+    snprintf(buf, 10, "%d", bs->plies50Move);
     for (size_t j = 0; j < strlen(buf); j++) fen[i++] = buf[j];
 
     fen[i++] = ' ';
 
     // Serialise the number of full turns.
-    memset(buf, 0, MAX_TURN_LENGTH*sizeof(char));
-    snprintf(buf, 10, "%d", b->turn);
+    memset(buf, 0, MaxTurnLength*sizeof(char));
+    snprintf(buf, 10, "%d", b->turnNumber);
     for (size_t j = 0; j < strlen(buf); j++) fen[i++] = buf[j];
 
     fen[i] = '\0';
@@ -144,7 +144,7 @@ char* fen_from_board(board* b)
     return fen;
 }
 
-void set_piece_from_fen(board* b, int loc, char c)
+void SetPieceFromFEN(struct Board* b, int loc, char c)
 {
     int col = isupper(c) ? WHITE : BLACK;
     char l = tolower(c);
@@ -168,13 +168,13 @@ void set_piece_from_fen(board* b, int loc, char c)
             break;
     }
 
-    bb bit = (bb)1 << loc;
+    BB bit = (BB)1 << loc;
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
-    b->squares[loc] = create_piece(col, type);
+    b->squares[loc] = CreatePiece(col, type);
 }
 
-char fen_from_piece(int col, int type)
+char FENFromPiece(int col, int type)
 {
     char c = 'p';
     switch (type)
@@ -201,7 +201,7 @@ char fen_from_piece(int col, int type)
     return c;
 }
 
-int loc_from_fen(const char* loc)
+int LocFromFEN(const char* loc)
 {
     int f = loc[0] - 'a';
     int r = loc[1] - '1';

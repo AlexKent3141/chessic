@@ -1,21 +1,21 @@
 #include "../include/chessic.h"
 
-piece create_piece(char col, PIECE_TYPE type)
+Piece CreatePiece(char col, enum PieceType type)
 {
     return col + (type << 1);
 }
 
-char get_piece_colour(piece p)
+char GetPieceColour(Piece p)
 {
     return p & 0x1;
 }
 
-PIECE_TYPE get_piece_type(piece p)
+enum PieceType GetPieceType(Piece p)
 {
     return p >> 1;
 }
 
-void set_piece_type(piece* p, PIECE_TYPE type)
+void SetPieceType(Piece* p, enum PieceType type)
 {
     *p = (*p & 0x1) + (type << 1);
 }

@@ -3,16 +3,16 @@
 
 #include "../../include/chessic.h"
 
-char* fen_serial_test(const char*);
+char* FENTest(const char*);
 
-char* fen_test1();
-char* fen_test2();
-char* fen_test3();
-char* fen_test4();
-char* fen_test5();
-char* fen_test6();
-char* fen_test7();
+char* FENTest1();
+char* FENTest2();
+char* FENTest3();
+char* FENTest4();
+char* FENTest5();
+char* FENTest6();
+char* FENTest7();
 
-char* all_parser_tests();
+char* AllParserTests();
 
-#endif // __PARSER_TESTS_H__
+#endif /* __PARSER_TESTS_H__ */

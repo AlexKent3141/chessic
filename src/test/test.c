@@ -4,9 +4,10 @@
 #include "perft_tests.h"
 #include "stdio.h"
 
+/* This corresponds to the variable in min_unit. */
 int tests_run = 0;
 
-bool run_tests(char* (*tests)())
+bool RunTests(char* (*tests)())
 {
     char* res = tests();
     if (res) printf("%s\n", res);
@@ -15,12 +16,12 @@ bool run_tests(char* (*tests)())
 
 int main()
 {
-    init_bits();
+    InitBits();
 
-    bool pass = run_tests(all_parser_tests)
-             && run_tests(all_movegen_tests)
-             && run_tests(all_make_undo_tests)
-             && run_tests(all_perft_tests);
+    bool pass = RunTests(AllParserTests)
+             && RunTests(AllMoveGenTests)
+             && RunTests(AllMakeUndoTests)
+             && RunTests(AllPerftTests);
 
     if (pass) printf("ALL TESTS PASSED\n");
     printf("Tests run: %d\n", tests_run);

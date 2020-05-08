@@ -3,19 +3,19 @@
 
 #include "../../include/chessic.h"
 
-typedef struct
+struct TestCase
 {
     char fen[MAX_FEN_LENGTH];
     int depth;
     int expected;
-} test_case;
+};
 
-void load_test_cases();
+void LoadTestCases();
 
-int perft(board*, int);
+int Perft(struct Board*, int);
 
-char* perft_test();
+char* PerftTest();
 
-char* all_perft_tests();
+char* AllPerftTests();
 
-#endif //  __PERFT_TESTS_H__
+#endif /* __PERFT_TESTS_H__ */

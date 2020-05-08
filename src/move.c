@@ -2,60 +2,63 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-// The bit layout for a move is:
-// 6 bits for the start location
-// 6 bits for the end location
-// 3 bits for the promotion piece type
-// 6 bits for the move type
+/* The bit layout for a move is:
+   6 bits for the start location
+   6 bits for the end location
+   3 bits for the promotion piece type
+   6 bits for the move type */
 
-move create_move(char start, char end, PIECE_TYPE promo, MOVE_TYPE type)
+Move CreateMove(char start, char end, enum PieceType promo, enum MoveType type)
 {
     return start + (end << 6) + (promo << 12) + (type << 15);
 }
 
-char get_start(move m)
+char GetMoveStart(Move m)
 {
     return m & 0x3F;
 }
 
-char get_end(move m)
+char GetMoveEnd(Move m)
 {
     return (m >> 6) & 0x3F;
 }
 
-PIECE_TYPE get_promotion(move m)
+enum PieceType GetMovePromotion(Move m)
 {
     return (m >> 12) & 0x7;
 }
 
-MOVE_TYPE get_move_type(move m)
+enum MoveType GetMoveType(Move m)
 {
     return (m >> 15) & 0x3F;
 }
 
-void print_move(move m)
+void PrintMove(Move m)
 {
     printf("Start: %d End: %d Promotion: %d Type: %d\n",
-        get_start(m), get_end(m), get_promotion(m), get_move_type(m));
+        GetMoveStart(m),
+        GetMoveEnd(m),
+        GetMovePromotion(m),
+        GetMoveType(m));
 }
 
-move_list* make_move_list()
+struct MoveList* MakeMoveList()
 {
-    move_list* l = malloc(sizeof(move_list));
-    l->moves = malloc(MAX_MOVES*sizeof(move));
+    struct MoveList* l = malloc(sizeof(struct MoveList));
+    l->moves = malloc(MAX_MOVES*sizeof(Move));
     l->end = &l->moves[0];
     l->n = 0;
     return l;
 }
 
-void add_move(move_list* l, move m)
+void AddMove(struct MoveList* l, Move m)
 {
     *l->end = m;
     ++l->end;
     l->n++;
 }
 
-void free_move_list(move_list* l)
+void FreeMoveList(struct MoveList* l)
 {
     if (l)
     {
