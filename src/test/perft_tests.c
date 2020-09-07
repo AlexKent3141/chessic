@@ -37,6 +37,8 @@ void LoadTestCases()
                 testCases[numTestCases++] = test;
             }
         }
+
+        fclose(f);
     }
     else
     {

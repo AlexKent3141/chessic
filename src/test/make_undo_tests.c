@@ -29,6 +29,8 @@ char* MakeUndoTest(const char* fen)
 
             mu_assert("Boards do not match.", false);
         }
+
+        FreeBoard(initial);
     }
 
     FreeMoveList(l);

@@ -141,6 +141,8 @@ char* FENFromBoard(struct Board* b)
 
     fen[i] = '\0';
 
+    free(buf);
+
     return fen;
 }
 

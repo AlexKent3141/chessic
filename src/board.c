@@ -31,6 +31,11 @@ struct Board* CopyBoard(struct Board* b)
 {
     struct Board* copy = malloc(sizeof(struct Board));
     memcpy(copy, b, sizeof(struct Board));
+
+    /* Perform a deep copy of the board state. */
+    copy->bs = malloc(sizeof(struct BoardState));
+    memcpy(copy->bs, b->bs, sizeof(struct BoardState));
+
     return copy;
 }
 
@@ -233,6 +238,12 @@ void FreeBoard(struct Board* b)
 {
     if (b)
     {
+        if (b->bs)
+        {
+            free(b->bs);
+            b->bs = NULL;
+        }
+
         free(b);
         b = NULL;
     }
