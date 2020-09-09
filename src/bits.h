@@ -22,7 +22,4 @@ extern CSC_Bitboard KingAttacks[64];
 extern CSC_Bitboard RayAttacks[64][8];
 extern CSC_Bitboard RayAttacksAll[64][2];
 
-void InitSteppers();
-void InitRays();
-
 #endif /* __BITS_H__ */

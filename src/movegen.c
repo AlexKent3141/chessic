@@ -1,27 +1,34 @@
-#include "movegen.h"
+#include "../include/chessic.h"
 #include "bits.h"
 
-struct CSC_MoveList* CSC_GetMoves(
-    struct CSC_Board* b,
+void AddPawnMoves(
+    CSC_Bitboard ends,
+    struct CSC_MoveList* l,
+    int d,
     enum CSC_MoveType type)
 {
-    struct CSC_MoveList* l = CSC_MakeMoveList();
-    FindPawnMoves(b, l, type);
+    int loc;
+    while (ends)
+    {
+        loc = CSC_PopLSB(&ends);
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_NONE, type));
+    }
+}
 
-    CSC_Bitboard targets = 0;
-    if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
-    if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
-
-    FindKnightMoves(b, l, targets);
-    FindKingMoves(b, l, targets);
-
-    CSC_Bitboard orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindOrthMoves(b, l, orth, targets, RayAttacks);
-
-    CSC_Bitboard diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindDiagMoves(b, l, diag, targets, RayAttacks);
-
-    return l;
+void AddPromoMoves(
+    CSC_Bitboard ends,
+    struct CSC_MoveList* l,
+    int d)
+{
+    int loc;
+    while (ends)
+    {
+        loc = CSC_PopLSB(&ends);
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_KNIGHT, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_BISHOP, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_ROOK, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_QUEEN, CSC_PROMOTION));
+    }
 }
 
 void FindPawnMoves(
@@ -148,21 +155,37 @@ void FindPawnMoves(
     }
 }
 
+void AddMoves(
+    int loc,
+    struct CSC_MoveList* l,
+    CSC_Bitboard ends)
+{
+    while (ends)
+    {
+        CSC_AddMove(l, CSC_CreateMove(loc, CSC_PopLSB(&ends), CSC_NONE, CSC_NORMAL));
+    }
+}
+
+void FindStepperMoves(
+    struct CSC_MoveList* l,
+    CSC_Bitboard steppers,
+    CSC_Bitboard targets,
+    CSC_Bitboard* attacks)
+{
+    int loc;
+    while (steppers)
+    {
+        loc = CSC_PopLSB(&steppers);
+        AddMoves(loc, l, attacks[loc] & targets);
+    }
+}
+
 void FindKnightMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
     CSC_Bitboard targets)
 {
     FindStepperMoves(l, b->pieces[CSC_KNIGHT][b->player], targets, KnightAttacks);
-}
-
-void FindKingMoves(
-    struct CSC_Board* b,
-    struct CSC_MoveList* l,
-    CSC_Bitboard targets)
-{
-    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, KingAttacks);
-    FindCastlingMoves(b, l);
 }
 
 void FindCastlingMoves(
@@ -194,6 +217,15 @@ void FindCastlingMoves(
             CSC_AddMove(l, CSC_CreateMove(startLoc, startLoc-2, CSC_NONE, CSC_QUEENCASTLE));
         }
     }
+}
+
+void FindKingMoves(
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Bitboard targets)
+{
+    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, KingAttacks);
+    FindCastlingMoves(b, l);
 }
 
 void FindOrthMoves(
@@ -270,57 +302,25 @@ void FindDiagMoves(
     }
 }
 
-void FindStepperMoves(
-    struct CSC_MoveList* l,
-    CSC_Bitboard steppers,
-    CSC_Bitboard targets,
-    CSC_Bitboard* attacks)
-{
-    int loc;
-    while (steppers)
-    {
-        loc = CSC_PopLSB(&steppers);
-        AddMoves(loc, l, attacks[loc] & targets);
-    }
-}
-
-void AddMoves(
-    int loc,
-    struct CSC_MoveList* l,
-    CSC_Bitboard ends)
-{
-    while (ends)
-    {
-        CSC_AddMove(l, CSC_CreateMove(loc, CSC_PopLSB(&ends), CSC_NONE, CSC_NORMAL));
-    }
-}
-
-void AddPawnMoves(
-    CSC_Bitboard ends,
-    struct CSC_MoveList* l,
-    int d,
+struct CSC_MoveList* CSC_GetMoves(
+    struct CSC_Board* b,
     enum CSC_MoveType type)
 {
-    int loc;
-    while (ends)
-    {
-        loc = CSC_PopLSB(&ends);
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_NONE, type));
-    }
-}
+    struct CSC_MoveList* l = CSC_MakeMoveList();
+    FindPawnMoves(b, l, type);
 
-void AddPromoMoves(
-    CSC_Bitboard ends,
-    struct CSC_MoveList* l,
-    int d)
-{
-    int loc;
-    while (ends)
-    {
-        loc = CSC_PopLSB(&ends);
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_KNIGHT, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_BISHOP, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_ROOK, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_QUEEN, CSC_PROMOTION));
-    }
+    CSC_Bitboard targets = 0;
+    if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
+    if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
+
+    FindKnightMoves(b, l, targets);
+    FindKingMoves(b, l, targets);
+
+    CSC_Bitboard orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
+    FindOrthMoves(b, l, orth, targets, RayAttacks);
+
+    CSC_Bitboard diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
+    FindDiagMoves(b, l, diag, targets, RayAttacks);
+
+    return l;
 }

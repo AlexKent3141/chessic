@@ -1,8 +1,16 @@
+#include "../../include/chessic.h"
 #include "perft_tests.h"
 #include "minunit.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+
+struct TestCase
+{
+    char fen[CSC_MAX_FEN_LENGTH];
+    int depth;
+    int expected;
+};
 
 int numTestCases, currentTest;
 struct TestCase* testCases;

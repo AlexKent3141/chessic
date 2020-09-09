@@ -1,7 +1,7 @@
 #include "board.h"
 #include "bits.h"
-#include "utils.h"
 #include "assert.h"
+#include "ctype.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
@@ -54,6 +54,31 @@ bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
     equal &= (b1->all[CSC_BLACK] == b2->all[CSC_BLACK]);
 
     return equal;
+}
+
+CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
+{
+    CSC_Piece pc = b->squares[loc];
+    int p = CSC_GetPieceColour(pc);
+    enum CSC_PieceType pt = CSC_GetPieceType(pc);
+
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
+    b->all[p] ^= bit;
+    b->pieces[pt][p] ^= bit;
+    b->squares[loc] = 0;
+
+    return pc;
+}
+
+void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
+{
+    int p = CSC_GetPieceColour(pc);
+    enum CSC_PieceType pt = CSC_GetPieceType(pc);
+
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
+    b->all[p] |= bit;
+    b->pieces[pt][p] |= bit;
+    b->squares[loc] = pc;
 }
 
 bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
@@ -212,31 +237,6 @@ void CSC_UndoMove(struct CSC_Board* b)
     }
 }
 
-CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
-{
-    CSC_Piece pc = b->squares[loc];
-    int p = CSC_GetPieceColour(pc);
-    enum CSC_PieceType pt = CSC_GetPieceType(pc);
-
-    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
-    b->all[p] ^= bit;
-    b->pieces[pt][p] ^= bit;
-    b->squares[loc] = 0;
-
-    return pc;
-}
-
-void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
-{
-    int p = CSC_GetPieceColour(pc);
-    enum CSC_PieceType pt = CSC_GetPieceType(pc);
-
-    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
-    b->all[p] |= bit;
-    b->pieces[pt][p] |= bit;
-    b->squares[loc] = pc;
-}
-
 void CSC_FreeBoard(struct CSC_Board* b)
 {
     if (b)
@@ -258,6 +258,12 @@ void LocDetails(struct CSC_Board* b, int loc, int* col, int* type)
     *type = CSC_GetPieceType(b->squares[loc]);
 }
 
+char LocToChar(int col, int type)
+{
+    static const char c[] = { '.', 'p', 'n', 'b', 'r', 'q', 'k' };
+    return col == CSC_WHITE ? toupper(c[type]) : c[type];
+}
+
 void CSC_PrintBoard(struct CSC_Board* b)
 {
     int col, type;
@@ -271,41 +277,6 @@ void CSC_PrintBoard(struct CSC_Board* b)
 
         putchar('\n');
     }
-}
-
-bool CSC_IsAttacked(struct CSC_Board* b, int loc)
-{
-    int p = b->player;
-    int e = 1-p;
-
-    // Check steppers.
-    if (KingAttacks[loc] & b->pieces[CSC_KING][e]) return true;
-    if (KnightAttacks[loc] & b->pieces[CSC_KNIGHT][e]) return true;
-
-    // Check orthogonal rays.
-    CSC_Bitboard targets = b->pieces[CSC_ROOK][e] | b->pieces[CSC_QUEEN][e];
-    if (RayAttacksAll[loc][ORTH] & targets)
-    {
-        if (IsOrthAttacked(b, loc, targets, RayAttacks)) return true;
-    }
-
-    // Check diagonal rays.
-    targets = b->pieces[CSC_BISHOP][e] | b->pieces[CSC_QUEEN][e];
-    if (RayAttacksAll[loc][DIAG] & targets)
-    {
-        if (IsDiagAttacked(b, loc, targets, RayAttacks)) return true;
-    }
-
-    // Check pawns.
-    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
-    CSC_Bitboard pawns = b->pieces[CSC_PAWN][e];
-
-    CSC_Bitboard attackers = 0;
-    if (!(bit & Files[0])) attackers |= e == CSC_WHITE ? bit >> 9 : bit << 7;
-    if (!(bit & Files[7])) attackers |= e == CSC_WHITE ? bit >> 7 : bit << 9;
-    if (attackers & pawns) return true;
-
-    return false;
 }
 
 bool IsOrthAttacked(
@@ -392,6 +363,41 @@ bool IsDiagAttacked(
         ray ^= (attackers | rays[CSC_MSB(attackers)][SW]);
         if (!(ray & all)) return true;
     }
+
+    return false;
+}
+
+bool CSC_IsAttacked(struct CSC_Board* b, int loc)
+{
+    int p = b->player;
+    int e = 1-p;
+
+    // Check steppers.
+    if (KingAttacks[loc] & b->pieces[CSC_KING][e]) return true;
+    if (KnightAttacks[loc] & b->pieces[CSC_KNIGHT][e]) return true;
+
+    // Check orthogonal rays.
+    CSC_Bitboard targets = b->pieces[CSC_ROOK][e] | b->pieces[CSC_QUEEN][e];
+    if (RayAttacksAll[loc][ORTH] & targets)
+    {
+        if (IsOrthAttacked(b, loc, targets, RayAttacks)) return true;
+    }
+
+    // Check diagonal rays.
+    targets = b->pieces[CSC_BISHOP][e] | b->pieces[CSC_QUEEN][e];
+    if (RayAttacksAll[loc][DIAG] & targets)
+    {
+        if (IsDiagAttacked(b, loc, targets, RayAttacks)) return true;
+    }
+
+    // Check pawns.
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
+    CSC_Bitboard pawns = b->pieces[CSC_PAWN][e];
+
+    CSC_Bitboard attackers = 0;
+    if (!(bit & Files[0])) attackers |= e == CSC_WHITE ? bit >> 9 : bit << 7;
+    if (!(bit & Files[7])) attackers |= e == CSC_WHITE ? bit >> 7 : bit << 9;
+    if (attackers & pawns) return true;
 
     return false;
 }

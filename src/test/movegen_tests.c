@@ -1,3 +1,4 @@
+#include "../../include/chessic.h"
 #include "movegen_tests.h"
 #include "minunit.h"
 #include "stdio.h"

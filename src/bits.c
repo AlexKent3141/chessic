@@ -8,18 +8,6 @@ CSC_Bitboard KingAttacks[64];
 CSC_Bitboard RayAttacks[64][8];
 CSC_Bitboard RayAttacksAll[64][2];
 
-void CSC_InitBits()
-{
-    Ranks[0] = 0xFF;
-    for (int i = 1; i < 8; i++) Ranks[i] = Ranks[i-1] << 8;
-
-    Files[0] = 0x0101010101010101;
-    for (int i = 1; i < 8; i++) Files[i] = Files[i-1] << 1;
-
-    InitSteppers();
-    InitRays();
-}
-
 void InitSteppers()
 {
     /* Knight steps. */
@@ -140,6 +128,18 @@ void InitRays()
         RayAttacksAll[i][DIAG] =
             RayAttacks[i][NE] | RayAttacks[i][NW] | RayAttacks[i][SE] | RayAttacks[i][SW];
     }
+}
+
+void CSC_InitBits()
+{
+    Ranks[0] = 0xFF;
+    for (int i = 1; i < 8; i++) Ranks[i] = Ranks[i-1] << 8;
+
+    Files[0] = 0x0101010101010101;
+    for (int i = 1; i < 8; i++) Files[i] = Files[i-1] << 1;
+
+    InitSteppers();
+    InitRays();
 }
 
 int CSC_PopLSB(CSC_Bitboard* board)
