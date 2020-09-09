@@ -15,12 +15,12 @@ typedef enum
     ORTH, DIAG
 } RayType;
 
-extern BB Ranks[8];
-extern BB Files[8];
-extern BB KnightAttacks[64];
-extern BB KingAttacks[64];
-extern BB RayAttacks[64][8];
-extern BB RayAttacksAll[64][2];
+extern CSC_Bitboard Ranks[8];
+extern CSC_Bitboard Files[8];
+extern CSC_Bitboard KnightAttacks[64];
+extern CSC_Bitboard KingAttacks[64];
+extern CSC_Bitboard RayAttacks[64][8];
+extern CSC_Bitboard RayAttacksAll[64][2];
 
 void InitSteppers();
 void InitRays();

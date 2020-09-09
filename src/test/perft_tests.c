@@ -16,7 +16,7 @@ void LoadTestCases()
 
     const size_t MAX_LINE_LENGTH = 255;
     char line[MAX_LINE_LENGTH];
-    char fen[MAX_FEN_LENGTH];
+    char fen[CSC_MAX_FEN_LENGTH];
 
     FILE* f = fopen("src/test/perftsuite.epd", "r");
     if (f != NULL)
@@ -24,7 +24,7 @@ void LoadTestCases()
         while (fgets(line, MAX_LINE_LENGTH, f))
         {
             char* token = strtok(line, ";");
-            memset(fen, 0, MAX_FEN_LENGTH*sizeof(char));
+            memset(fen, 0, CSC_MAX_FEN_LENGTH*sizeof(char));
             memcpy(fen, token, strlen(token)*sizeof(char));
 
             while ((token = strtok(NULL, ";")) != NULL)
@@ -32,7 +32,7 @@ void LoadTestCases()
                 struct TestCase test = { 0 };
                 test.depth = token[1] - '0';
                 test.expected = atoi(&token[3]);
-                memcpy(test.fen, fen, MAX_FEN_LENGTH*sizeof(char));
+                memcpy(test.fen, fen, CSC_MAX_FEN_LENGTH*sizeof(char));
 
                 testCases[numTestCases++] = test;
             }
@@ -46,23 +46,23 @@ void LoadTestCases()
     }
 }
 
-int Perft(struct Board* b, int depth)
+int Perft(struct CSC_Board* b, int depth)
 {
     if (depth == 0) return 1;
 
     int nodes = 0;
-    struct MoveList* l = GetMoves(b, ALL);
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
     for (int i = 0; i < l->n; i++)
     {
-        Move m = l->moves[i];
-        if (MakeMove(b, m))
+        CSC_Move m = l->moves[i];
+        if (CSC_MakeMove(b, m))
         {
             nodes += Perft(b, depth-1);
-            UndoMove(b);
+            CSC_UndoMove(b);
         }
     }
 
-    FreeMoveList(l);
+    CSC_FreeMoveList(l);
 
     return nodes;
 }
@@ -75,11 +75,11 @@ char* PerftTest()
         test.depth,
         test.expected);
 
-    struct Board* b = BoardFromFEN(test.fen);
+    struct CSC_Board* b = CSC_BoardFromFEN(test.fen);
     int nodes = Perft(b, test.depth);
     printf("Got: %d\n", nodes);
     mu_assert("Incorrect perft value", nodes == test.expected);
-    FreeBoard(b);
+    CSC_FreeBoard(b);
     return NULL;
 }
 

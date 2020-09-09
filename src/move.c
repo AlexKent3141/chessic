@@ -8,57 +8,61 @@
    3 bits for the promotion piece type
    6 bits for the move type */
 
-Move CreateMove(char start, char end, enum PieceType promo, enum MoveType type)
+CSC_Move CSC_CreateMove(
+    char start,
+    char end,
+    enum CSC_PieceType promo,
+    enum CSC_MoveType type)
 {
     return start + (end << 6) + (promo << 12) + (type << 15);
 }
 
-char GetMoveStart(Move m)
+char CSC_GetMoveStart(CSC_Move m)
 {
     return m & 0x3F;
 }
 
-char GetMoveEnd(Move m)
+char CSC_GetMoveEnd(CSC_Move m)
 {
     return (m >> 6) & 0x3F;
 }
 
-enum PieceType GetMovePromotion(Move m)
+enum CSC_PieceType CSC_GetMovePromotion(CSC_Move m)
 {
     return (m >> 12) & 0x7;
 }
 
-enum MoveType GetMoveType(Move m)
+enum CSC_MoveType CSC_GetMoveType(CSC_Move m)
 {
     return (m >> 15) & 0x3F;
 }
 
-void PrintMove(Move m)
+void CSC_PrintMove(CSC_Move m)
 {
     printf("Start: %d End: %d Promotion: %d Type: %d\n",
-        GetMoveStart(m),
-        GetMoveEnd(m),
-        GetMovePromotion(m),
-        GetMoveType(m));
+        CSC_GetMoveStart(m),
+        CSC_GetMoveEnd(m),
+        CSC_GetMovePromotion(m),
+        CSC_GetMoveType(m));
 }
 
-struct MoveList* MakeMoveList()
+struct CSC_MoveList* CSC_MakeMoveList()
 {
-    struct MoveList* l = malloc(sizeof(struct MoveList));
-    l->moves = malloc(MAX_MOVES*sizeof(Move));
+    struct CSC_MoveList* l = malloc(sizeof(struct CSC_MoveList));
+    l->moves = malloc(CSC_MAX_MOVES*sizeof(CSC_Move));
     l->end = &l->moves[0];
     l->n = 0;
     return l;
 }
 
-void AddMove(struct MoveList* l, Move m)
+void CSC_AddMove(struct CSC_MoveList* l, CSC_Move m)
 {
     *l->end = m;
     ++l->end;
     l->n++;
 }
 
-void FreeMoveList(struct MoveList* l)
+void CSC_FreeMoveList(struct CSC_MoveList* l)
 {
     if (l)
     {

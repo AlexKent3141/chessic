@@ -1,326 +1,326 @@
 #include "movegen.h"
 #include "bits.h"
 
-struct MoveList* GetMoves(
-    struct Board* b,
-    enum MoveType type)
+struct CSC_MoveList* CSC_GetMoves(
+    struct CSC_Board* b,
+    enum CSC_MoveType type)
 {
-    struct MoveList* l = MakeMoveList();
+    struct CSC_MoveList* l = CSC_MakeMoveList();
     FindPawnMoves(b, l, type);
 
-    BB targets = 0;
-    if (type & QUIETS) targets |= ~(b->all[WHITE] | b->all[BLACK]);
-    if (type & CAPTURES) targets |= b->all[1-b->player];
+    CSC_Bitboard targets = 0;
+    if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
+    if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
 
     FindKnightMoves(b, l, targets);
     FindKingMoves(b, l, targets);
 
-    BB orth = b->pieces[ROOK][b->player] | b->pieces[QUEEN][b->player];
+    CSC_Bitboard orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindOrthMoves(b, l, orth, targets, RayAttacks);
 
-    BB diag = b->pieces[BISHOP][b->player] | b->pieces[QUEEN][b->player];
+    CSC_Bitboard diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindDiagMoves(b, l, diag, targets, RayAttacks);
 
     return l;
 }
 
 void FindPawnMoves(
-    struct Board* b,
-    struct MoveList* l,
-    enum MoveType type)
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    enum CSC_MoveType type)
 {
     int p = b->player;
-    BB enemies = b->all[1-p];
-    BB all = b->all[WHITE] | b->all[BLACK];
-    BB promo = p == WHITE ? Ranks[6] : Ranks[1];
-    int forward = p == WHITE ? FILE_NB : -FILE_NB;
-    int capLeft = FILE_NB-1;
-    int capRight = FILE_NB+1;
+    CSC_Bitboard enemies = b->all[1-p];
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    CSC_Bitboard promo = p == CSC_WHITE ? Ranks[6] : Ranks[1];
+    int forward = p == CSC_WHITE ? CSC_FILE_NB : -CSC_FILE_NB;
+    int capLeft = CSC_FILE_NB-1;
+    int capRight = CSC_FILE_NB+1;
 
     // Single and double pawn pushes (without promotions).
-    if (type & QUIETS)
+    if (type & CSC_QUIETS)
     {
-        BB pawns = b->pieces[PAWN][p] & ~promo;
-        BB f1 = p == WHITE
-            ? pawns << FILE_NB
-            : pawns >> FILE_NB;
+        CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & ~promo;
+        CSC_Bitboard f1 = p == CSC_WHITE
+            ? pawns << CSC_FILE_NB
+            : pawns >> CSC_FILE_NB;
 
         f1 &= ~all;
 
-        BB f2 = p == WHITE
-            ? (f1 & Ranks[2]) << FILE_NB
-            : (f1 & Ranks[5]) >> FILE_NB;
+        CSC_Bitboard f2 = p == CSC_WHITE
+            ? (f1 & Ranks[2]) << CSC_FILE_NB
+            : (f1 & Ranks[5]) >> CSC_FILE_NB;
 
         f2 &= ~all;
 
-        AddPawnMoves(f1, l, forward, NORMAL);
-        AddPawnMoves(f2, l, 2*forward, TWOSPACE);
+        AddPawnMoves(f1, l, forward, CSC_NORMAL);
+        AddPawnMoves(f2, l, 2*forward, CSC_TWOSPACE);
     }
 
     // Normal and en-passent captures (without promotions).
-    if (type & CAPTURES)
+    if (type & CSC_CAPTURES)
     {
-        BB pawns = b->pieces[PAWN][p] & ~promo;
+        CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & ~promo;
 
-        // Ensure that no captures wrap around the struct Board.
-        BB leftCapPawns = pawns & ~Files[0];
-        BB rightCapPawns = pawns & ~Files[7];
+        // Ensure that no captures wrap around the struct CSC_Board.
+        CSC_Bitboard leftCapPawns = pawns & ~Files[0];
+        CSC_Bitboard rightCapPawns = pawns & ~Files[7];
 
         // Defining left and right from white's perspective...
-        BB leftCaps = p == WHITE
+        CSC_Bitboard leftCaps = p == CSC_WHITE
             ? leftCapPawns << capLeft
             : leftCapPawns >> capRight;
 
-        BB rightCaps = p == WHITE
+        CSC_Bitboard rightCaps = p == CSC_WHITE
             ? rightCapPawns << capRight
             : rightCapPawns >> capLeft;
 
         AddPawnMoves(
             leftCaps & enemies,
             l,
-            p == WHITE ? capLeft : -capRight, NORMAL);
+            p == CSC_WHITE ? capLeft : -capRight, CSC_NORMAL);
 
         AddPawnMoves(
             rightCaps & enemies,
             l,
-            p == WHITE ? capRight : -capLeft, NORMAL);
+            p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
 
         int epLoc = b->bs->enPassentIndex;
-        if (epLoc != BAD_LOC)
+        if (epLoc != CSC_BAD_LOC)
         {
-            BB ep = (BB)1 << epLoc;
+            CSC_Bitboard ep = (CSC_Bitboard)1 << epLoc;
 
             // Need to shift "backwards" from the ep location.
-            BB caps = 0;
+            CSC_Bitboard caps = 0;
             if (!(ep & Files[0]))
             {
-                caps |= p == WHITE ? ep >> capRight : ep << capLeft;
+                caps |= p == CSC_WHITE ? ep >> capRight : ep << capLeft;
             }
 
             if (!(ep & Files[7]))
             {
-                caps |= p == WHITE ? ep >> capLeft : ep << capRight;
+                caps |= p == CSC_WHITE ? ep >> capLeft : ep << capRight;
             }
 
             caps &= pawns;
 
             while (caps)
             {
-                AddMove(l, CreateMove(PopLSB(&caps), epLoc, NONE, ENPASSENT));
+                CSC_AddMove(l, CSC_CreateMove(CSC_PopLSB(&caps), epLoc, CSC_NONE, CSC_ENPASSENT));
             }
         }
     }
 
     // Promotions.
-    BB pawns = b->pieces[PAWN][p] & promo;
+    CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & promo;
     if (pawns)
     {
-        BB f1 = p == WHITE ? pawns << FILE_NB : pawns >> FILE_NB;
+        CSC_Bitboard f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
         f1 &= ~all;
 
         AddPromoMoves(f1, l, forward);
 
-        if (type & CAPTURES)
+        if (type & CSC_CAPTURES)
         {
-            // Ensure that no captures wrap around the struct Board.
-            BB leftCapPawns = pawns & ~Files[0];
-            BB rightCapPawns = pawns & ~Files[7];
+            // Ensure that no captures wrap around the struct CSC_Board.
+            CSC_Bitboard leftCapPawns = pawns & ~Files[0];
+            CSC_Bitboard rightCapPawns = pawns & ~Files[7];
 
             // Defining left and right from white's perspective...
-            BB leftCaps = p == WHITE
+            CSC_Bitboard leftCaps = p == CSC_WHITE
                 ? leftCapPawns << capLeft
                 : leftCapPawns >> capRight;
 
-            BB rightCaps = p == WHITE
+            CSC_Bitboard rightCaps = p == CSC_WHITE
                 ? rightCapPawns << capRight
                 : rightCapPawns >> capLeft;
 
             AddPromoMoves(
                 leftCaps & enemies,
                 l,
-                p == WHITE ? capLeft : -capRight);
+                p == CSC_WHITE ? capLeft : -capRight);
 
             AddPromoMoves(
                 rightCaps & enemies,
                 l,
-                p == WHITE ? capRight : -capLeft);
+                p == CSC_WHITE ? capRight : -capLeft);
         }
     }
 }
 
 void FindKnightMoves(
-    struct Board* b,
-    struct MoveList* l,
-    BB targets)
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[KNIGHT][b->player], targets, KnightAttacks);
+    FindStepperMoves(l, b->pieces[CSC_KNIGHT][b->player], targets, KnightAttacks);
 }
 
 void FindKingMoves(
-    struct Board* b,
-    struct MoveList* l,
-    BB targets)
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[KING][b->player], targets, KingAttacks);
+    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, KingAttacks);
     FindCastlingMoves(b, l);
 }
 
 void FindCastlingMoves(
-    struct Board* b,
-    struct MoveList* l)
+    struct CSC_Board* b,
+    struct CSC_MoveList* l)
 {
     int p = b->player;
-    BB all = b->all[WHITE] | b->all[BLACK];
-    int startLoc = p == WHITE ? 4 : 60;
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    int startLoc = p == CSC_WHITE ? 4 : 60;
     if (b->bs->castlingRights[p].kingSide)
     {
-        if (!Test(all, startLoc+1)
-         && !Test(all, startLoc+2)
-         && !IsAttacked(b, startLoc)
-         && !IsAttacked(b, startLoc+1))
+        if (!CSC_Test(all, startLoc+1)
+         && !CSC_Test(all, startLoc+2)
+         && !CSC_IsAttacked(b, startLoc)
+         && !CSC_IsAttacked(b, startLoc+1))
         {
-            AddMove(l, CreateMove(startLoc, startLoc+2, NONE, KINGCASTLE));
+            CSC_AddMove(l, CSC_CreateMove(startLoc, startLoc+2, CSC_NONE, CSC_KINGCASTLE));
         }
     }
 
     if (b->bs->castlingRights[p].queenSide)
     {
-        if (!Test(all, startLoc-1)
-         && !Test(all, startLoc-2)
-         && !Test(all, startLoc-3)
-         && !IsAttacked(b, startLoc)
-         && !IsAttacked(b, startLoc-1))
+        if (!CSC_Test(all, startLoc-1)
+         && !CSC_Test(all, startLoc-2)
+         && !CSC_Test(all, startLoc-3)
+         && !CSC_IsAttacked(b, startLoc)
+         && !CSC_IsAttacked(b, startLoc-1))
         {
-            AddMove(l, CreateMove(startLoc, startLoc-2, NONE, QUEENCASTLE));
+            CSC_AddMove(l, CSC_CreateMove(startLoc, startLoc-2, CSC_NONE, CSC_QUEENCASTLE));
         }
     }
 }
 
 void FindOrthMoves(
-    struct Board* b,
-    struct MoveList* l,
-    BB pieces,
-    BB targets,
-    BB (*rays)[8])
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Bitboard pieces,
+    CSC_Bitboard targets,
+    CSC_Bitboard (*rays)[8])
 {
-    BB all = b->all[WHITE] | b->all[BLACK];
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
 
     int p;
-    BB blockers, ray;
+    CSC_Bitboard blockers, ray;
     while (pieces)
     {
-        p = PopLSB(&pieces);
+        p = CSC_PopLSB(&pieces);
 
         ray = rays[p][N];
         blockers = ray & all;
-        if (blockers) ray ^= rays[LSB(blockers)][N];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][N];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][E];
         blockers = ray & all;
-        if (blockers) ray ^= rays[LSB(blockers)][E];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][E];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][S];
         blockers = ray & all;
-        if (blockers) ray ^= rays[MSB(blockers)][S];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][S];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][W];
         blockers = ray & all;
-        if (blockers) ray ^= rays[MSB(blockers)][W];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][W];
         AddMoves(p, l, ray & targets);
     }
 }
 
 void FindDiagMoves(
-    struct Board* b,
-    struct MoveList* l,
-    BB pieces,
-    BB targets,
-    BB (*rays)[8])
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Bitboard pieces,
+    CSC_Bitboard targets,
+    CSC_Bitboard (*rays)[8])
 {
-    BB all = b->all[WHITE] | b->all[BLACK];
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
 
     int p;
-    BB blockers, ray;
+    CSC_Bitboard blockers, ray;
     while (pieces)
     {
-        p = PopLSB(&pieces);
+        p = CSC_PopLSB(&pieces);
 
         ray = rays[p][NW];
         blockers = ray & all;
-        if (blockers) ray ^= rays[LSB(blockers)][NW];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][NW];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][NE];
         blockers = ray & all;
-        if (blockers) ray ^= rays[LSB(blockers)][NE];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][NE];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][SW];
         blockers = ray & all;
-        if (blockers) ray ^= rays[MSB(blockers)][SW];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][SW];
         AddMoves(p, l, ray & targets);
 
         ray = rays[p][SE];
         blockers = ray & all;
-        if (blockers) ray ^= rays[MSB(blockers)][SE];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][SE];
         AddMoves(p, l, ray & targets);
     }
 }
 
 void FindStepperMoves(
-    struct MoveList* l,
-    BB steppers,
-    BB targets,
-    BB* attacks)
+    struct CSC_MoveList* l,
+    CSC_Bitboard steppers,
+    CSC_Bitboard targets,
+    CSC_Bitboard* attacks)
 {
     int loc;
     while (steppers)
     {
-        loc = PopLSB(&steppers);
+        loc = CSC_PopLSB(&steppers);
         AddMoves(loc, l, attacks[loc] & targets);
     }
 }
 
 void AddMoves(
     int loc,
-    struct MoveList* l,
-    BB ends)
+    struct CSC_MoveList* l,
+    CSC_Bitboard ends)
 {
     while (ends)
     {
-        AddMove(l, CreateMove(loc, PopLSB(&ends), NONE, NORMAL));
+        CSC_AddMove(l, CSC_CreateMove(loc, CSC_PopLSB(&ends), CSC_NONE, CSC_NORMAL));
     }
 }
 
 void AddPawnMoves(
-    BB ends,
-    struct MoveList* l,
+    CSC_Bitboard ends,
+    struct CSC_MoveList* l,
     int d,
-    enum MoveType type)
+    enum CSC_MoveType type)
 {
     int loc;
     while (ends)
     {
-        loc = PopLSB(&ends);
-        AddMove(l, CreateMove(loc-d, loc, NONE, type));
+        loc = CSC_PopLSB(&ends);
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_NONE, type));
     }
 }
 
 void AddPromoMoves(
-    BB ends,
-    struct MoveList* l,
+    CSC_Bitboard ends,
+    struct CSC_MoveList* l,
     int d)
 {
     int loc;
     while (ends)
     {
-        loc = PopLSB(&ends);
-        AddMove(l, CreateMove(loc-d, loc, KNIGHT, PROMOTION));
-        AddMove(l, CreateMove(loc-d, loc, BISHOP, PROMOTION));
-        AddMove(l, CreateMove(loc-d, loc, ROOK, PROMOTION));
-        AddMove(l, CreateMove(loc-d, loc, QUEEN, PROMOTION));
+        loc = CSC_PopLSB(&ends);
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_KNIGHT, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_BISHOP, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_ROOK, CSC_PROMOTION));
+        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_QUEEN, CSC_PROMOTION));
     }
 }

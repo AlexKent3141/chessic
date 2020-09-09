@@ -6,95 +6,96 @@
 #include "stdio.h"
 #include "string.h"
 
-struct Board* CreateBoardEmpty()
+struct CSC_Board* CreateBoardEmpty()
 {
-    struct Board* b = malloc(sizeof(struct Board));
+    struct CSC_Board* b = malloc(sizeof(struct CSC_Board));
 
-    b->player = WHITE;
+    b->player = CSC_WHITE;
     b->turnNumber = 0;
 
-    struct BoardState* bs = malloc(sizeof(struct BoardState));
-    memset(bs, 0, sizeof(struct BoardState));
-    bs->enPassentIndex = BAD_LOC;
+    struct CSC_BoardState* bs = malloc(sizeof(struct CSC_BoardState));
+    memset(bs, 0, sizeof(struct CSC_BoardState));
+    bs->enPassentIndex = CSC_BAD_LOC;
     bs->previousState = NULL;
     b->bs = bs;
 
-    memset(b->squares, 0, SQUARE_NB*sizeof(Piece));
+    memset(b->squares, 0, CSC_SQUARE_NB*sizeof(CSC_Piece));
 
-    memset(b->all, 0, 2*sizeof(BB));
-    for (int i = 0; i <= KING; i++) memset(b->pieces[i], 0, 2*sizeof(BB));
+    memset(b->all, 0, 2*sizeof(CSC_Bitboard));
+    for (int i = 0; i <= CSC_KING; i++)
+        memset(b->pieces[i], 0, 2*sizeof(CSC_Bitboard));
 
     return b;
 }
 
-struct Board* CopyBoard(struct Board* b)
+struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
 {
-    struct Board* copy = malloc(sizeof(struct Board));
-    memcpy(copy, b, sizeof(struct Board));
+    struct CSC_Board* copy = malloc(sizeof(struct CSC_Board));
+    memcpy(copy, b, sizeof(struct CSC_Board));
 
     /* Perform a deep copy of the board state. */
-    copy->bs = malloc(sizeof(struct BoardState));
-    memcpy(copy->bs, b->bs, sizeof(struct BoardState));
+    copy->bs = malloc(sizeof(struct CSC_BoardState));
+    memcpy(copy->bs, b->bs, sizeof(struct CSC_BoardState));
 
     return copy;
 }
 
-bool BoardEqual(struct Board* b1, struct Board* b2)
+bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
 {
     bool equal = true;
-    for (int i = 0; i < SQUARE_NB; i++)
+    for (int i = 0; i < CSC_SQUARE_NB; i++)
         equal &= (b1->squares[i] == b2->squares[i]);
-    for (int p = PAWN; p <= KING; p++)
-        equal &= (b1->pieces[p][WHITE] == b2->pieces[p][WHITE]);
-    for (int p = PAWN; p <= KING; p++)
-        equal &= (b1->pieces[p][BLACK] == b2->pieces[p][BLACK]);
+    for (int p = CSC_PAWN; p <= CSC_KING; p++)
+        equal &= (b1->pieces[p][CSC_WHITE] == b2->pieces[p][CSC_WHITE]);
+    for (int p = CSC_PAWN; p <= CSC_KING; p++)
+        equal &= (b1->pieces[p][CSC_BLACK] == b2->pieces[p][CSC_BLACK]);
 
-    equal &= (b1->all[WHITE] == b2->all[WHITE]);
-    equal &= (b1->all[BLACK] == b2->all[BLACK]);
+    equal &= (b1->all[CSC_WHITE] == b2->all[CSC_WHITE]);
+    equal &= (b1->all[CSC_BLACK] == b2->all[CSC_BLACK]);
 
     return equal;
 }
 
-bool MakeMove(struct Board* b, Move m)
+bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 {
     assert(b != NULL);
     assert(b->bs != NULL);
 
     int p = b->player;
-    int s = GetMoveStart(m);
-    int e = GetMoveEnd(m);
+    int s = CSC_GetMoveStart(m);
+    int e = CSC_GetMoveEnd(m);
 
-    Piece sp = RemovePiece(b, s);
-    Piece cap = b->squares[e];
+    CSC_Piece sp = RemovePiece(b, s);
+    CSC_Piece cap = b->squares[e];
 
-    enum PieceType pt = GetPieceType(sp);
-    enum MoveType mt = GetMoveType(m);
+    enum CSC_PieceType pt = CSC_GetPieceType(sp);
+    enum CSC_MoveType mt = CSC_GetMoveType(m);
 
-    if (cap && mt != ENPASSENT) RemovePiece(b, e);
+    if (cap && mt != CSC_ENPASSENT) RemovePiece(b, e);
 
-    if (mt == ENPASSENT)
+    if (mt == CSC_ENPASSENT)
     {
-        assert(b->bs->enPassentIndex != BAD_LOC);
+        assert(b->bs->enPassentIndex != CSC_BAD_LOC);
 
-        int capLoc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        int capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
         cap = b->squares[capLoc];
         RemovePiece(b, capLoc);
     }
-    else if (mt == PROMOTION)
+    else if (mt == CSC_PROMOTION)
     {
-        SetPieceType(&sp, GetMovePromotion(m));
+        CSC_SetPieceType(&sp, CSC_GetMovePromotion(m));
     }
-    else if (mt & CASTLE)
+    else if (mt & CSC_CASTLE)
     {
         // Move the corresponding rook.
-        int startFile = mt == KINGCASTLE ? 7 : 0;
-        int end_file = mt == KINGCASTLE ? 5 : 3;
-        int rank = p == WHITE ? 0 : 7;
+        int startFile = mt == CSC_KINGCASTLE ? 7 : 0;
+        int end_file = mt == CSC_KINGCASTLE ? 5 : 3;
+        int rank = p == CSC_WHITE ? 0 : 7;
 
-        Piece rook = b->squares[8*rank + startFile];
+        CSC_Piece rook = b->squares[8*rank + startFile];
 
-        assert(GetPieceType(rook) == ROOK);
-        assert(GetPieceColour(rook) == p);
+        assert(CSC_GetPieceType(rook) == CSC_ROOK);
+        assert(CSC_GetPieceColour(rook) == p);
 
         RemovePiece(b, 8*rank + startFile);
         AddPiece(b, 8*rank + end_file, rook);
@@ -103,35 +104,35 @@ bool MakeMove(struct Board* b, Move m)
     // Add the piece back now that the promotion has been applied.
     AddPiece(b, e, sp);
 
-    struct CastlingRights ourCastlingRights = b->bs->castlingRights[p];
-    if (pt == KING)
+    struct CSC_CastlingRights ourCastlingRights = b->bs->castlingRights[p];
+    if (pt == CSC_KING)
     {
         ourCastlingRights.kingSide = false;
         ourCastlingRights.queenSide = false;
     }
-    else if (pt == ROOK)
+    else if (pt == CSC_ROOK)
     {
-        int kingRook = p == WHITE ? 7 : 63;
-        int queenRook = p == WHITE ? 0 : 56;
+        int kingRook = p == CSC_WHITE ? 7 : 63;
+        int queenRook = p == CSC_WHITE ? 0 : 56;
         ourCastlingRights.kingSide &= (s != kingRook);
         ourCastlingRights.queenSide &= (s != queenRook);
     }
 
-    struct CastlingRights theirCastlingRights = b->bs->castlingRights[1-p];
-    if (cap && GetPieceType(cap) == ROOK)
+    struct CSC_CastlingRights theirCastlingRights = b->bs->castlingRights[1-p];
+    if (cap && CSC_GetPieceType(cap) == CSC_ROOK)
     {
-        int enemyKingRook = p == WHITE ? 63 : 7;
-        int enemyQueenRook = p == WHITE ? 56 : 0;
+        int enemyKingRook = p == CSC_WHITE ? 63 : 7;
+        int enemyQueenRook = p == CSC_WHITE ? 56 : 0;
         theirCastlingRights.kingSide &= (e != enemyKingRook);
         theirCastlingRights.queenSide &= (e != enemyQueenRook);
     }
 
-    int ep = BAD_LOC;
-    if (mt == TWOSPACE) ep = e + (p == WHITE ? -8 : 8);
+    int ep = CSC_BAD_LOC;
+    if (mt == CSC_TWOSPACE) ep = e + (p == CSC_WHITE ? -8 : 8);
 
     // Clone the previous board state.
-    struct BoardState* next = malloc(sizeof(struct BoardState));
-    memcpy(next, b->bs, sizeof(struct BoardState));
+    struct CSC_BoardState* next = malloc(sizeof(struct CSC_BoardState));
+    memcpy(next, b->bs, sizeof(struct CSC_BoardState));
     next->lastMove = m;
     next->captureOnLastMove = cap;
     next->castlingRights[p] = ourCastlingRights;
@@ -139,16 +140,16 @@ bool MakeMove(struct Board* b, Move m)
     next->enPassentIndex = ep;
 
     ++next->plies50Move;
-    if (cap || pt == PAWN) next->plies50Move = 0;
+    if (cap || pt == CSC_PAWN) next->plies50Move = 0;
 
     next->previousState = b->bs;
     b->bs = next;
 
     // Ensure legality: the king cannot end in check.
-    if (IsAttacked(b, LSB(b->pieces[KING][p])))
+    if (CSC_IsAttacked(b, CSC_LSB(b->pieces[CSC_KING][p])))
     {
         b->player = 1 - p;
-        UndoMove(b);
+        CSC_UndoMove(b);
         return false;
     }
 
@@ -157,14 +158,14 @@ bool MakeMove(struct Board* b, Move m)
     return true;
 }
 
-void UndoMove(struct Board* b)
+void CSC_UndoMove(struct CSC_Board* b)
 {
     assert(b != NULL);
     assert(b->bs != NULL);
 
     // Extract the required info from the state and revert to previous.
-    struct BoardState* old = b->bs;
-    Move m = old->lastMove;
+    struct CSC_BoardState* old = b->bs;
+    CSC_Move m = old->lastMove;
     int cap = old->captureOnLastMove;
     b->bs = old->previousState;
     free(old);
@@ -172,50 +173,52 @@ void UndoMove(struct Board* b)
     b->player = 1 - b->player;
 
     int p = b->player;
-    int s = GetMoveStart(m);
-    int e = GetMoveEnd(m);
+    int s = CSC_GetMoveStart(m);
+    int e = CSC_GetMoveEnd(m);
 
     // Move the pieces back.
-    Piece pc = b->squares[e];
+    CSC_Piece pc = b->squares[e];
 
     RemovePiece(b, e);
 
-    enum MoveType mt = GetMoveType(m);
-    if (mt == PROMOTION) SetPieceType(&pc, PAWN);
+    enum CSC_MoveType mt = CSC_GetMoveType(m);
+    if (mt == CSC_PROMOTION) CSC_SetPieceType(&pc, CSC_PAWN);
 
     AddPiece(b, s, pc);
 
     if (cap)
     {
         int capLoc = e;
-        if (mt == ENPASSENT) capLoc = e + (p == WHITE ? -FILE_NB : FILE_NB);
+        if (mt == CSC_ENPASSENT)
+            capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
+
         AddPiece(b, capLoc, cap);
     }
 
-    if (mt & CASTLE)
+    if (mt & CSC_CASTLE)
     {
         // Move the corresponding rook back.
-        int startFile = mt == KINGCASTLE ? 5 : 3;
-        int endFile = mt == KINGCASTLE ? 7 : 0;
-        int rank = p == WHITE ? 0 : 7;
+        int startFile = mt == CSC_KINGCASTLE ? 5 : 3;
+        int endFile = mt == CSC_KINGCASTLE ? 7 : 0;
+        int rank = p == CSC_WHITE ? 0 : 7;
 
-        Piece rook = b->squares[8*rank + startFile];
+        CSC_Piece rook = b->squares[8*rank + startFile];
 
-        assert(GetPieceType(rook) == ROOK);
-        assert(GetPieceColour(rook) == p);
+        assert(CSC_GetPieceType(rook) == CSC_ROOK);
+        assert(CSC_GetPieceColour(rook) == p);
 
         RemovePiece(b, 8*rank + startFile);
         AddPiece(b, 8*rank + endFile, rook);
     }
 }
 
-Piece RemovePiece(struct Board* b, int loc)
+CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
 {
-    Piece pc = b->squares[loc];
-    int p = GetPieceColour(pc);
-    enum PieceType pt = GetPieceType(pc);
+    CSC_Piece pc = b->squares[loc];
+    int p = CSC_GetPieceColour(pc);
+    enum CSC_PieceType pt = CSC_GetPieceType(pc);
 
-    BB bit = (BB)1 << loc;
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
     b->all[p] ^= bit;
     b->pieces[pt][p] ^= bit;
     b->squares[loc] = 0;
@@ -223,18 +226,18 @@ Piece RemovePiece(struct Board* b, int loc)
     return pc;
 }
 
-void AddPiece(struct Board* b, int loc, Piece pc)
+void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
 {
-    int p = GetPieceColour(pc);
-    enum PieceType pt = GetPieceType(pc);
+    int p = CSC_GetPieceColour(pc);
+    enum CSC_PieceType pt = CSC_GetPieceType(pc);
 
-    BB bit = (BB)1 << loc;
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
     b->all[p] |= bit;
     b->pieces[pt][p] |= bit;
     b->squares[loc] = pc;
 }
 
-void FreeBoard(struct Board* b)
+void CSC_FreeBoard(struct CSC_Board* b)
 {
     if (b)
     {
@@ -249,13 +252,13 @@ void FreeBoard(struct Board* b)
     }
 }
 
-void LocDetails(struct Board* b, int loc, int* col, int* type)
+void LocDetails(struct CSC_Board* b, int loc, int* col, int* type)
 {
-    *col = GetPieceColour(b->squares[loc]);
-    *type = GetPieceType(b->squares[loc]);
+    *col = CSC_GetPieceColour(b->squares[loc]);
+    *type = CSC_GetPieceType(b->squares[loc]);
 }
 
-void PrintBoard(struct Board* b)
+void CSC_PrintBoard(struct CSC_Board* b)
 {
     int col, type;
     for (int r = 7; r >= 0; r--)
@@ -270,51 +273,55 @@ void PrintBoard(struct Board* b)
     }
 }
 
-bool IsAttacked(struct Board* b, int loc)
+bool CSC_IsAttacked(struct CSC_Board* b, int loc)
 {
     int p = b->player;
     int e = 1-p;
 
     // Check steppers.
-    if (KingAttacks[loc] & b->pieces[KING][e]) return true;
-    if (KnightAttacks[loc] & b->pieces[KNIGHT][e]) return true;
+    if (KingAttacks[loc] & b->pieces[CSC_KING][e]) return true;
+    if (KnightAttacks[loc] & b->pieces[CSC_KNIGHT][e]) return true;
 
     // Check orthogonal rays.
-    BB targets = b->pieces[ROOK][e] | b->pieces[QUEEN][e];
+    CSC_Bitboard targets = b->pieces[CSC_ROOK][e] | b->pieces[CSC_QUEEN][e];
     if (RayAttacksAll[loc][ORTH] & targets)
     {
         if (IsOrthAttacked(b, loc, targets, RayAttacks)) return true;
     }
 
     // Check diagonal rays.
-    targets = b->pieces[BISHOP][e] | b->pieces[QUEEN][e];
+    targets = b->pieces[CSC_BISHOP][e] | b->pieces[CSC_QUEEN][e];
     if (RayAttacksAll[loc][DIAG] & targets)
     {
         if (IsDiagAttacked(b, loc, targets, RayAttacks)) return true;
     }
 
     // Check pawns.
-    BB bit = (BB)1 << loc;
-    BB pawns = b->pieces[PAWN][e];
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
+    CSC_Bitboard pawns = b->pieces[CSC_PAWN][e];
 
-    BB attackers = 0;
-    if (!(bit & Files[0])) attackers |= e == WHITE ? bit >> 9 : bit << 7;
-    if (!(bit & Files[7])) attackers |= e == WHITE ? bit >> 7 : bit << 9;
+    CSC_Bitboard attackers = 0;
+    if (!(bit & Files[0])) attackers |= e == CSC_WHITE ? bit >> 9 : bit << 7;
+    if (!(bit & Files[7])) attackers |= e == CSC_WHITE ? bit >> 7 : bit << 9;
     if (attackers & pawns) return true;
 
     return false;
 }
 
-bool IsOrthAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
+bool IsOrthAttacked(
+    struct CSC_Board* b,
+    int loc,
+    CSC_Bitboard targets,
+    CSC_Bitboard (*rays)[8])
 {
-    BB all = b->all[WHITE] | b->all[BLACK];
-    BB ray, attackers;
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    CSC_Bitboard ray, attackers;
 
     ray = rays[loc][N];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[LSB(attackers)][N]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][N]);
         if (!(ray & all)) return true;
     }
 
@@ -322,7 +329,7 @@ bool IsOrthAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[LSB(attackers)][E]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][E]);
         if (!(ray & all)) return true;
     }
 
@@ -330,7 +337,7 @@ bool IsOrthAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[MSB(attackers)][S]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][S]);
         if (!(ray & all)) return true;
     }
 
@@ -338,23 +345,27 @@ bool IsOrthAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[MSB(attackers)][W]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][W]);
         if (!(ray & all)) return true;
     }
 
     return false;
 }
 
-bool IsDiagAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
+bool IsDiagAttacked(
+    struct CSC_Board* b,
+    int loc,
+    CSC_Bitboard targets,
+    CSC_Bitboard (*rays)[8])
 {
-    BB all = b->all[WHITE] | b->all[BLACK];
-    BB ray, attackers;
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    CSC_Bitboard ray, attackers;
 
     ray = rays[loc][NE];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[LSB(attackers)][NE]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][NE]);
         if (!(ray & all)) return true;
     }
 
@@ -362,7 +373,7 @@ bool IsDiagAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[LSB(attackers)][NW]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][NW]);
         if (!(ray & all)) return true;
     }
 
@@ -370,7 +381,7 @@ bool IsDiagAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[MSB(attackers)][SE]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][SE]);
         if (!(ray & all)) return true;
     }
 
@@ -378,7 +389,7 @@ bool IsDiagAttacked(struct Board* b, int loc, BB targets, BB (*rays)[8])
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[MSB(attackers)][SW]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][SW]);
         if (!(ray & all)) return true;
     }
 

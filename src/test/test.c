@@ -16,7 +16,7 @@ bool RunTests(char* (*tests)())
 
 int main()
 {
-    InitBits();
+    CSC_InitBits();
 
     bool pass = RunTests(AllParserTests)
              && RunTests(AllMoveGenTests)

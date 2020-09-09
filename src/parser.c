@@ -6,10 +6,10 @@
 #include "stdlib.h"
 #include "string.h"
 
-struct Board* BoardFromFEN(const char* fen)
+struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 {
-    struct Board* b = CreateBoardEmpty();
-    struct BoardState* bs = b->bs;
+    struct CSC_Board* b = CreateBoardEmpty();
+    struct CSC_BoardState* bs = b->bs;
 
     char* fenDup = malloc(strlen(fen)*sizeof(char) + 1);
     strcpy(fenDup, fen);
@@ -39,17 +39,17 @@ struct Board* BoardFromFEN(const char* fen)
 
     // Get the colour to move.
     token = strtok(NULL, " ");
-    b->player = token[0] == 'w' ? WHITE : BLACK;
+    b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
     // Get the castling rights.
     token = strtok(NULL, " ");
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
-        if      (c == 'K') bs->castlingRights[WHITE].kingSide = true;
-        else if (c == 'Q') bs->castlingRights[WHITE].queenSide = true;
-        else if (c == 'k') bs->castlingRights[BLACK].kingSide = true;
-        else if (c == 'q') bs->castlingRights[BLACK].queenSide = true;
+        if      (c == 'K') bs->castlingRights[CSC_WHITE].kingSide = true;
+        else if (c == 'Q') bs->castlingRights[CSC_WHITE].queenSide = true;
+        else if (c == 'k') bs->castlingRights[CSC_BLACK].kingSide = true;
+        else if (c == 'q') bs->castlingRights[CSC_BLACK].queenSide = true;
     }
 
     // Get the en-passent square.
@@ -69,12 +69,12 @@ struct Board* BoardFromFEN(const char* fen)
     return b;
 }
 
-char* FENFromBoard(struct Board* b)
+char* CSC_FENFromBoard(struct CSC_Board* b)
 {
-    char* fen = malloc(MAX_FEN_LENGTH*sizeof(char));
-    memset(fen, 0, MAX_FEN_LENGTH*sizeof(char));
+    char* fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    memset(fen, 0, CSC_MAX_FEN_LENGTH*sizeof(char));
 
-    struct BoardState* bs = b->bs;
+    struct CSC_BoardState* bs = b->bs;
 
     // Set the piece definitions.
     int i = 0, e;
@@ -85,7 +85,7 @@ char* FENFromBoard(struct Board* b)
         for (int f = 0; f < 8; f++)
         {
             LocDetails(b, 8*r+f, &col, &type);
-            if (type != NONE)
+            if (type != CSC_NONE)
             {
                 if (e) fen[i++] = e + '0';
                 e = 0;
@@ -102,18 +102,18 @@ char* FENFromBoard(struct Board* b)
     }
 
     fen[i++] = ' ';
-    fen[i++] = b->player == WHITE ? 'w' : 'b';
+    fen[i++] = b->player == CSC_WHITE ? 'w' : 'b';
 
     fen[i++] = ' ';
     int start = i;
-    if (bs->castlingRights[WHITE].kingSide) fen[i++] = 'K';
-    if (bs->castlingRights[WHITE].queenSide) fen[i++] = 'Q';
-    if (bs->castlingRights[BLACK].kingSide) fen[i++] = 'k';
-    if (bs->castlingRights[BLACK].queenSide) fen[i++] = 'q';
+    if (bs->castlingRights[CSC_WHITE].kingSide) fen[i++] = 'K';
+    if (bs->castlingRights[CSC_WHITE].queenSide) fen[i++] = 'Q';
+    if (bs->castlingRights[CSC_BLACK].kingSide) fen[i++] = 'k';
+    if (bs->castlingRights[CSC_BLACK].queenSide) fen[i++] = 'q';
     if (i == start) fen[i++] = '-';
 
     fen[i++] = ' ';
-    if (bs->enPassentIndex != BAD_LOC)
+    if (bs->enPassentIndex != CSC_BAD_LOC)
     {
         fen[i++] = (bs->enPassentIndex % 8) + 'a';
         fen[i++] = (bs->enPassentIndex / 8) + '1';
@@ -146,34 +146,34 @@ char* FENFromBoard(struct Board* b)
     return fen;
 }
 
-void SetPieceFromFEN(struct Board* b, int loc, char c)
+void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
 {
-    int col = isupper(c) ? WHITE : BLACK;
+    int col = isupper(c) ? CSC_WHITE : CSC_BLACK;
     char l = tolower(c);
-    int type = PAWN;
+    int type = CSC_PAWN;
     switch (l)
     {
         case 'n':
-            type = KNIGHT;
+            type = CSC_KNIGHT;
             break;
         case 'b':
-            type = BISHOP;
+            type = CSC_BISHOP;
             break;
         case 'r':
-            type = ROOK;
+            type = CSC_ROOK;
             break;
         case 'q':
-            type = QUEEN;
+            type = CSC_QUEEN;
             break;
         case 'k':
-            type = KING;
+            type = CSC_KING;
             break;
     }
 
-    BB bit = (BB)1 << loc;
+    CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
-    b->squares[loc] = CreatePiece(col, type);
+    b->squares[loc] = CSC_CreatePiece(col, type);
 }
 
 char FENFromPiece(int col, int type)
@@ -181,24 +181,24 @@ char FENFromPiece(int col, int type)
     char c = 'p';
     switch (type)
     {
-        case KNIGHT:
+        case CSC_KNIGHT:
             c = 'n';
             break;
-        case BISHOP:
+        case CSC_BISHOP:
             c = 'b';
             break;
-        case ROOK:
+        case CSC_ROOK:
             c = 'r';
             break;
-        case QUEEN:
+        case CSC_QUEEN:
             c = 'q';
             break;
-        case KING:
+        case CSC_KING:
             c = 'k';
             break;
     }
 
-    if (col == WHITE) c = toupper(c);
+    if (col == CSC_WHITE) c = toupper(c);
 
     return c;
 }

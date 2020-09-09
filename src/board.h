@@ -3,15 +3,15 @@
 
 #include "../include/chessic.h"
 
-struct Board* CreateBoardEmpty();
+struct CSC_Board* CreateBoardEmpty();
 
 /* Get the colour and piece type at the specified location. */
-void LocDetails(struct Board*, int, int*, int*);
+void LocDetails(struct CSC_Board*, int, int*, int*);
 
-Piece RemovePiece(struct Board*, int);
-void AddPiece(struct Board*, int, Piece);
+CSC_Piece RemovePiece(struct CSC_Board*, int);
+void AddPiece(struct CSC_Board*, int, CSC_Piece);
 
-bool IsOrthAttacked(struct Board*, int, BB, BB(*)[8]);
-bool IsDiagAttacked(struct Board*, int, BB, BB(*)[8]);
+bool IsOrthAttacked(struct CSC_Board*, int, CSC_Bitboard, CSC_Bitboard(*)[8]);
+bool IsDiagAttacked(struct CSC_Board*, int, CSC_Bitboard, CSC_Bitboard(*)[8]);
 
 #endif /* __CHESSIC_BOARD_H__ */

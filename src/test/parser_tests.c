@@ -7,10 +7,10 @@
 char* FENTest(const char* fen)
 {
     printf("FEN: %s\n", fen);
-    struct Board* b = BoardFromFEN(fen);
-    PrintBoard(b);
-    char* out = FENFromBoard(b);
-    FreeBoard(b);
+    struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    CSC_PrintBoard(b);
+    char* out = CSC_FENFromBoard(b);
+    CSC_FreeBoard(b);
     printf("Output: %s\n", out);
 
     mu_assert("Mismatch detected in FEN output", strcmp(fen, out) == 0);

@@ -5,14 +5,14 @@
 
 struct TestCase
 {
-    char fen[MAX_FEN_LENGTH];
+    char fen[CSC_MAX_FEN_LENGTH];
     int depth;
     int expected;
 };
 
 void LoadTestCases();
 
-int Perft(struct Board*, int);
+int Perft(struct CSC_Board*, int);
 
 char* PerftTest();
 

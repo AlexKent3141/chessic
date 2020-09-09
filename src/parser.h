@@ -3,7 +3,7 @@
 
 #include "board.h"
 
-void SetPieceFromFEN(struct Board*, int, char);
+void SetPieceFromFEN(struct CSC_Board*, int, char);
 char FENFromPiece(int, int);
 int LocFromFEN(const char*);
 

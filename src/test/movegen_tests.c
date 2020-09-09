@@ -7,17 +7,17 @@ char* MoveGenTest(const char* fen, int expected)
     printf("FEN: %s\n", fen);
     printf("Expected: %d\n", expected);
 
-    struct Board* b = BoardFromFEN(fen);
-    PrintBoard(b);
-    struct MoveList* l = GetMoves(b, ALL);
-    FreeBoard(b);
+    struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    CSC_PrintBoard(b);
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    CSC_FreeBoard(b);
 
     printf("Num moves generated: %d\n", l->n);
-    for (int i = 0; i < l->n; i++) PrintMove(l->moves[i]);
+    for (int i = 0; i < l->n; i++) CSC_PrintMove(l->moves[i]);
 
     mu_assert("Wrong number of moves generated.", l->n == expected);
 
-    FreeMoveList(l);
+    CSC_FreeMoveList(l);
 
     return NULL;
 }

@@ -4,65 +4,78 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-#define FILE_NB 8
-#define RANK_NB 8
-#define SQUARE_NB 64
+#define CSC_FILE_NB 8
+#define CSC_RANK_NB 8
+#define CSC_SQUARE_NB 64
 
-#define BAD_LOC -1
-#define MAX_MOVES 250
+#define CSC_BAD_LOC -1
+#define CSC_MAX_MOVES 250
 
-#define MAX_FEN_LENGTH 100
+#define CSC_MAX_FEN_LENGTH 100
 
-typedef uint64_t BB; /* This is the bit board type. */
-typedef uint32_t Move;
-typedef uint16_t Piece;
+typedef uint64_t CSC_Bitboard; /* This is the bit board type. */
+typedef uint32_t CSC_Move;
+typedef uint16_t CSC_Piece;
 
-enum Colour
+enum CSC_Colour
 {
-    WHITE, BLACK
+    CSC_WHITE,
+    CSC_BLACK
 };
 
 /* The piece types. */
-enum PieceType
+enum CSC_PieceType
 {
-    NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+    CSC_NONE,
+    CSC_PAWN,
+    CSC_KNIGHT,
+    CSC_BISHOP,
+    CSC_ROOK,
+    CSC_QUEEN,
+    CSC_KING
 };
 
-enum MoveType
+enum CSC_MoveType
 {
-    NORMAL = 0,
-    TWOSPACE = 1,
-    PROMOTION = 2,
-    ENPASSENT = 4,
-    CASTLE = 8,
-    KINGCASTLE = CASTLE | 16,
-    QUEENCASTLE = CASTLE | 32
+    CSC_NORMAL = 0,
+    CSC_TWOSPACE = 1,
+    CSC_PROMOTION = 2,
+    CSC_ENPASSENT = 4,
+    CSC_CASTLE = 8,
+    CSC_KINGCASTLE = CSC_CASTLE | 16,
+    CSC_QUEENCASTLE = CSC_CASTLE | 32
 };
 
-enum MoveGenType
+enum CSC_MoveGenType
 {
-    QUIETS = 1,
-    CAPTURES = 2,
-    ALL = QUIETS | CAPTURES
+    CSC_QUIETS = 1,
+    CSC_CAPTURES = 2,
+    CSC_ALL = CSC_QUIETS | CSC_CAPTURES
 };
 
-struct MoveList
+struct CSC_MoveList
 {
-    Move* moves;
-    Move* end;
+    CSC_Move* moves;
+    CSC_Move* end;
     int n;
 };
 
-struct CastlingRights
+struct CSC_CastlingRights
 {
-    bool kingSide;  /* Whether the player can castle kingside. */
-    bool queenSide; /* Whether the player can castle queenside. */
+    /* Whether the player can castle kingside. */
+    bool kingSide;
+
+    /* Whether the player can castle queenside. */
+    bool queenSide;
 };
 
-struct BoardState
+struct CSC_BoardState
 {
-    Move lastMove;             /* The move that was applied to reach this state. */
-    Piece captureOnLastMove;   /* The piece that was captured on the last move. */
+    /* The move that was applied to reach this state. */
+    CSC_Move lastMove;
+
+    /* The piece that was captured on the last move. */
+    CSC_Piece captureOnLastMove;
 
     /* The index of the square where an en-passent capture is possible. */
     int enPassentIndex;
@@ -71,65 +84,76 @@ struct BoardState
     int plies50Move;
 
     /* The castling rights for each player. */
-    struct CastlingRights castlingRights[2];
+    struct CSC_CastlingRights castlingRights[2];
 
     /* The previous game state. */
-    struct BoardState* previousState;
+    struct CSC_BoardState* previousState;
 };
 
-struct Board
+struct CSC_Board
 {
-    int player;               /* The player to move. */
-    int turnNumber;           /* The number of full turns so far. */
-    struct BoardState* bs;    /* The state which varies per move. */
-    Piece squares[SQUARE_NB]; /* The pieces on each square. */
-    BB all[2];                /* All pieces for each player. */
-    BB pieces[7][2];          /* The pieces of each type for each player. */
+    /* The player to move. */
+    int player;
+
+    /* The number of full turns so far. */
+    int turnNumber;
+
+    /* The state which varies per move. */
+    struct CSC_BoardState* bs;
+
+    /* The pieces on each square. */
+    CSC_Piece squares[CSC_SQUARE_NB];
+
+    /* All pieces for each player. */
+    CSC_Bitboard all[2];
+
+    /* The pieces of each type for each player. */
+    CSC_Bitboard pieces[7][2];
 };
 
 /* Methods for interacting with bit boards. */
-void InitBits(); /* This must be called before generating moves! */
-int PopLSB(BB*);
-int PopMSB(BB*);
-int LSB(BB);
-int MSB(BB);
-bool Test(BB, int);
-void PrintBB(BB);
+void CSC_InitBits(); /* This must be called before generating moves! */
+int CSC_PopLSB(CSC_Bitboard*);
+int CSC_PopMSB(CSC_Bitboard*);
+int CSC_LSB(CSC_Bitboard);
+int CSC_MSB(CSC_Bitboard);
+bool CSC_Test(CSC_Bitboard, int);
+void CSC_PrintBitboard(CSC_Bitboard);
 
 /* Methods for creating and interacting with the board. */
-struct Board* BoardFromFEN(const char*);
-char* FENFromBoard(struct Board*);
-struct Board* CopyBoard(struct Board*);
-bool BoardEqual(struct Board*, struct Board*);
-void FreeBoard(struct Board*);
-void PrintBoard(struct Board*);
+struct CSC_Board* CSC_BoardFromFEN(const char*);
+char* CSC_FENFromBoard(struct CSC_Board*);
+struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
+bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
+void CSC_FreeBoard(struct CSC_Board*);
+void CSC_PrintBoard(struct CSC_Board*);
 
 /* Generate pseudo-legal moves. */
-struct MoveList* GetMoves(struct Board*, enum MoveType);
+struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);
 
 /* Attempt to make the move (returns false if it's illegal). */
-bool MakeMove(struct Board*, Move);
+bool CSC_MakeMove(struct CSC_Board*, CSC_Move);
 
 /* Undo the last made move. */
-void UndoMove(struct Board*);
+void CSC_UndoMove(struct CSC_Board*);
 
-bool IsAttacked(struct Board*, int);
+bool CSC_IsAttacked(struct CSC_Board*, int);
 
 /* Methods for creating and interacting with pieces. */
-Piece CreatePiece(char, enum PieceType);
-char GetPieceColour(Piece);
-enum PieceType GetPieceType(Piece);
-void SetPieceType(Piece*, enum PieceType);
+CSC_Piece CSC_CreatePiece(char, enum CSC_PieceType);
+char CSC_GetPieceColour(CSC_Piece);
+enum CSC_PieceType CSC_GetPieceType(CSC_Piece);
+void CSC_SetPieceType(CSC_Piece*, enum CSC_PieceType);
 
 /* Methods for creating and interacting with moves. */
-Move CreateMove(char, char, enum PieceType, enum MoveType);
-char GetMoveStart(Move);
-char GetMoveEnd(Move);
-enum PieceType GetMovePromotion(Move);
-enum MoveType GetMoveType(Move);
-void PrintMove(Move);
-struct MoveList* MakeMoveList();
-void AddMove(struct MoveList*, Move);
-void FreeMoveList(struct MoveList*);
+CSC_Move CSC_CreateMove(char, char, enum CSC_PieceType, enum CSC_MoveType);
+char CSC_GetMoveStart(CSC_Move);
+char CSC_GetMoveEnd(CSC_Move);
+enum CSC_PieceType CSC_GetMovePromotion(CSC_Move);
+enum CSC_MoveType CSC_GetMoveType(CSC_Move);
+void CSC_PrintMove(CSC_Move);
+struct CSC_MoveList* CSC_MakeMoveList();
+void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
+void CSC_FreeMoveList(struct CSC_MoveList*);
 
 #endif /* __CHESSIC_H__ */

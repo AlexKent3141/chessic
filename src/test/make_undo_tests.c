@@ -6,35 +6,35 @@ char* MakeUndoTest(const char* fen)
 {
     printf("FEN: %s\n", fen);
 
-    struct Board* b = BoardFromFEN(fen);
-    struct MoveList* l = GetMoves(b, ALL);
+    struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
 
     for (int i = 0; i < l->n; i++)
     {
-        Move m = l->moves[i];
-        PrintMove(m);
+        CSC_Move m = l->moves[i];
+        CSC_PrintMove(m);
 
-        struct Board* initial = CopyBoard(b);
-        if (MakeMove(b, m))
+        struct CSC_Board* initial = CSC_CopyBoard(b);
+        if (CSC_MakeMove(b, m))
         {
-            UndoMove(b);
+            CSC_UndoMove(b);
         }
 
-        if (!BoardEqual(b, initial))
+        if (!CSC_BoardEqual(b, initial))
         {
             printf("Initial: \n");
-            PrintBoard(initial);
+            CSC_PrintBoard(initial);
             printf("After move: \n");
-            PrintBoard(b);
+            CSC_PrintBoard(b);
 
             mu_assert("Boards do not match.", false);
         }
 
-        FreeBoard(initial);
+        CSC_FreeBoard(initial);
     }
 
-    FreeMoveList(l);
-    FreeBoard(b);
+    CSC_FreeMoveList(l);
+    CSC_FreeBoard(b);
 
     return NULL;
 }
