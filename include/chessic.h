@@ -4,6 +4,8 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+#define EXPORT __attribute__ ((visibility("default")))
+
 #define CSC_FILE_NB 8
 #define CSC_RANK_NB 8
 #define CSC_SQUARE_NB 64
@@ -13,9 +15,23 @@
 
 #define CSC_MAX_FEN_LENGTH 100
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint64_t CSC_Bitboard; /* This is the bit board type. */
 typedef uint32_t CSC_Move;
 typedef uint16_t CSC_Piece;
+
+typedef enum
+{
+    N, S, W, E, NE, NW, SE, SW
+} Directions;
+
+typedef enum
+{
+    ORTH, DIAG
+} RayType;
 
 enum CSC_Colour
 {
@@ -111,49 +127,62 @@ struct CSC_Board
     CSC_Bitboard pieces[7][2];
 };
 
+/* Bitboard constants. */
+EXPORT extern CSC_Bitboard Ranks[8];
+EXPORT extern CSC_Bitboard Files[8];
+EXPORT extern CSC_Bitboard KnightAttacks[64];
+EXPORT extern CSC_Bitboard KingAttacks[64];
+EXPORT extern CSC_Bitboard RayAttacks[64][8];
+EXPORT extern CSC_Bitboard RayAttacksAll[64][2];
+
+
 /* Methods for interacting with bit boards. */
-void CSC_InitBits(); /* This must be called before generating moves! */
-int CSC_PopLSB(CSC_Bitboard*);
-int CSC_PopMSB(CSC_Bitboard*);
-int CSC_LSB(CSC_Bitboard);
-int CSC_MSB(CSC_Bitboard);
-bool CSC_Test(CSC_Bitboard, int);
-void CSC_PrintBitboard(CSC_Bitboard);
+EXPORT void CSC_InitBits(); /* This must be called before generating moves! */
+EXPORT int CSC_PopLSB(CSC_Bitboard*);
+EXPORT int CSC_PopMSB(CSC_Bitboard*);
+EXPORT int CSC_LSB(CSC_Bitboard);
+EXPORT int CSC_MSB(CSC_Bitboard);
+EXPORT bool CSC_Test(CSC_Bitboard, int);
+EXPORT void CSC_PrintBitboard(CSC_Bitboard);
 
 /* Methods for creating and interacting with the board. */
-struct CSC_Board* CSC_BoardFromFEN(const char*);
-char* CSC_FENFromBoard(struct CSC_Board*);
-struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
-bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
-void CSC_FreeBoard(struct CSC_Board*);
-void CSC_PrintBoard(struct CSC_Board*);
+EXPORT struct CSC_Board* CSC_BoardFromFEN(const char*);
+EXPORT char* CSC_FENFromBoard(struct CSC_Board*);
+EXPORT struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
+EXPORT bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
+EXPORT void CSC_FreeBoard(struct CSC_Board*);
+EXPORT void CSC_PrintBoard(struct CSC_Board*);
 
 /* Generate pseudo-legal moves. */
-struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);
+EXPORT struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);
 
 /* Attempt to make the move (returns false if it's illegal). */
-bool CSC_MakeMove(struct CSC_Board*, CSC_Move);
+EXPORT bool CSC_MakeMove(struct CSC_Board*, CSC_Move);
 
 /* Undo the last made move. */
-void CSC_UndoMove(struct CSC_Board*);
+EXPORT void CSC_UndoMove(struct CSC_Board*);
 
-bool CSC_IsAttacked(struct CSC_Board*, int);
+EXPORT bool CSC_IsAttacked(struct CSC_Board*, int);
 
 /* Methods for creating and interacting with pieces. */
-CSC_Piece CSC_CreatePiece(char, enum CSC_PieceType);
-char CSC_GetPieceColour(CSC_Piece);
-enum CSC_PieceType CSC_GetPieceType(CSC_Piece);
-void CSC_SetPieceType(CSC_Piece*, enum CSC_PieceType);
+EXPORT CSC_Piece CSC_CreatePiece(char, enum CSC_PieceType);
+EXPORT char CSC_GetPieceColour(CSC_Piece);
+EXPORT enum CSC_PieceType CSC_GetPieceType(CSC_Piece);
+EXPORT void CSC_SetPieceType(CSC_Piece*, enum CSC_PieceType);
 
 /* Methods for creating and interacting with moves. */
-CSC_Move CSC_CreateMove(char, char, enum CSC_PieceType, enum CSC_MoveType);
-char CSC_GetMoveStart(CSC_Move);
-char CSC_GetMoveEnd(CSC_Move);
-enum CSC_PieceType CSC_GetMovePromotion(CSC_Move);
-enum CSC_MoveType CSC_GetMoveType(CSC_Move);
-void CSC_PrintMove(CSC_Move);
-struct CSC_MoveList* CSC_MakeMoveList();
-void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
-void CSC_FreeMoveList(struct CSC_MoveList*);
+EXPORT CSC_Move CSC_CreateMove(char, char, enum CSC_PieceType, enum CSC_MoveType);
+EXPORT char CSC_GetMoveStart(CSC_Move);
+EXPORT char CSC_GetMoveEnd(CSC_Move);
+EXPORT enum CSC_PieceType CSC_GetMovePromotion(CSC_Move);
+EXPORT enum CSC_MoveType CSC_GetMoveType(CSC_Move);
+EXPORT void CSC_PrintMove(CSC_Move);
+EXPORT struct CSC_MoveList* CSC_MakeMoveList();
+EXPORT void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
+EXPORT void CSC_FreeMoveList(struct CSC_MoveList*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __CHESSIC_H__ */

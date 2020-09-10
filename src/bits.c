@@ -1,4 +1,4 @@
-#include "bits.h"
+#include "../include/chessic.h"
 #include "stdio.h"
 
 CSC_Bitboard Ranks[8];

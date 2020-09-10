@@ -1,5 +1,4 @@
 #include "../include/chessic.h"
-#include "bits.h"
 
 void AddPawnMoves(
     CSC_Bitboard ends,
