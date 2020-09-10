@@ -1,4 +1,4 @@
-#include "../../include/chessic.h"
+#include "../include/chessic.h"
 #include "perft_tests.h"
 #include "minunit.h"
 #include "stdio.h"
@@ -26,7 +26,7 @@ void LoadTestCases()
     char line[MAX_LINE_LENGTH];
     char fen[CSC_MAX_FEN_LENGTH];
 
-    FILE* f = fopen("src/test/perftsuite.epd", "r");
+    FILE* f = fopen("tests/perftsuite.epd", "r");
     if (f != NULL)
     {
         while (fgets(line, MAX_LINE_LENGTH, f))
