@@ -22,6 +22,7 @@ extern "C" {
 typedef uint64_t CSC_Bitboard; /* This is the bit board type. */
 typedef uint32_t CSC_Move;
 typedef uint16_t CSC_Piece;
+typedef uint64_t CSC_Hash;
 
 typedef enum
 {
@@ -125,6 +126,9 @@ struct CSC_Board
 
     /* The pieces of each type for each player. */
     CSC_Bitboard pieces[7][2];
+
+    /* The current board hash. */
+    CSC_Hash hash;
 };
 
 /* Bitboard constants. */
@@ -135,9 +139,11 @@ EXPORT extern CSC_Bitboard KingAttacks[64];
 EXPORT extern CSC_Bitboard RayAttacks[64][8];
 EXPORT extern CSC_Bitboard RayAttacksAll[64][2];
 
+/* Initialisation functions which must be called first. */
+EXPORT void CSC_InitBits();
+EXPORT void CSC_InitZobrist();
 
 /* Methods for interacting with bit boards. */
-EXPORT void CSC_InitBits(); /* This must be called before generating moves! */
 EXPORT int CSC_PopLSB(CSC_Bitboard*);
 EXPORT int CSC_PopMSB(CSC_Bitboard*);
 EXPORT int CSC_LSB(CSC_Bitboard);

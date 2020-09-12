@@ -1,5 +1,6 @@
 #include "../include/chessic.h"
 #include "board.h"
+#include "zobrist.h"
 #include "assert.h"
 #include "ctype.h"
 #include "stdio.h"
@@ -34,6 +35,7 @@ void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
     b->squares[loc] = CSC_CreatePiece(col, type);
+    b->hash ^= keys.pieceSquare[col][type][loc];
 }
 
 char FENFromPiece(int col, int type)
@@ -105,20 +107,42 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     token = strtok(NULL, " ");
     b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
+    if (b->player == CSC_WHITE) b->hash ^= keys.side;
+
     // Get the castling rights.
     token = strtok(NULL, " ");
     for (size_t i = 0; i < strlen(token); i++)
     {
         c = token[i];
-        if      (c == 'K') bs->castlingRights[CSC_WHITE].kingSide = true;
-        else if (c == 'Q') bs->castlingRights[CSC_WHITE].queenSide = true;
-        else if (c == 'k') bs->castlingRights[CSC_BLACK].kingSide = true;
-        else if (c == 'q') bs->castlingRights[CSC_BLACK].queenSide = true;
+        if (c == 'K')
+        {
+            bs->castlingRights[CSC_WHITE].kingSide = true;
+            b->hash ^= keys.castling[CSC_WHITE][0];
+        }
+        else if (c == 'Q')
+        {
+            bs->castlingRights[CSC_WHITE].queenSide = true;
+            b->hash ^= keys.castling[CSC_WHITE][1];
+        }
+        else if (c == 'k')
+        {
+            bs->castlingRights[CSC_BLACK].kingSide = true;
+            b->hash ^= keys.castling[CSC_BLACK][0];
+        }
+        else if (c == 'q')
+        {
+            bs->castlingRights[CSC_BLACK].queenSide = true;
+            b->hash ^= keys.castling[CSC_BLACK][1];
+        }
     }
 
     // Get the en-passent square.
     token = strtok(NULL, " ");
-    if (token[0] != '-') bs->enPassentIndex = LocFromFEN(token);
+    if (token[0] != '-')
+    {
+        bs->enPassentIndex = LocFromFEN(token);
+        b->hash ^= keys.enpassentFile[bs->enPassentIndex % CSC_FILE_NB];
+    }
 
     // Get the half-move count.
     token = strtok(NULL, " ");

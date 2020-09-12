@@ -1,4 +1,5 @@
 #include "board.h"
+#include "zobrist.h"
 #include "assert.h"
 #include "ctype.h"
 #include "stdlib.h"
@@ -11,6 +12,7 @@ struct CSC_Board* CreateBoardEmpty()
 
     b->player = CSC_WHITE;
     b->turnNumber = 0;
+    b->hash = 0;
 
     struct CSC_BoardState* bs = malloc(sizeof(struct CSC_BoardState));
     memset(bs, 0, sizeof(struct CSC_BoardState));
@@ -41,6 +43,11 @@ struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
 
 bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
 {
+    /* First check the board hash - normally this is sufficient. */
+    if (b1->hash != b2->hash)
+        return false;
+
+    /* The boards hash to the same value, need to check the details. */
     bool equal = true;
     for (int i = 0; i < CSC_SQUARE_NB; i++)
         equal &= (b1->squares[i] == b2->squares[i]);
@@ -65,6 +72,7 @@ CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
     b->all[p] ^= bit;
     b->pieces[pt][p] ^= bit;
     b->squares[loc] = 0;
+    b->hash ^= keys.pieceSquare[b->player][pt][loc];
 
     return pc;
 }
@@ -78,6 +86,7 @@ void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
     b->all[p] |= bit;
     b->pieces[pt][p] |= bit;
     b->squares[loc] = pc;
+    b->hash ^= keys.pieceSquare[b->player][pt][loc];
 }
 
 bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
@@ -123,6 +132,10 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 
         RemovePiece(b, 8*rank + startFile);
         AddPiece(b, 8*rank + end_file, rook);
+
+        b->hash ^= mt == CSC_KINGCASTLE
+            ? keys.castling[b->player][0]
+            : keys.castling[b->player][1];
     }
 
     // Add the piece back now that the promotion has been applied.
@@ -152,7 +165,11 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     }
 
     int ep = CSC_BAD_LOC;
-    if (mt == CSC_TWOSPACE) ep = e + (p == CSC_WHITE ? -8 : 8);
+    if (mt == CSC_TWOSPACE)
+    {
+        ep = e + (p == CSC_WHITE ? -8 : 8);
+        b->hash ^= keys.enpassentFile[e % CSC_FILE_NB];
+    }
 
     // Clone the previous board state.
     struct CSC_BoardState* next = malloc(sizeof(struct CSC_BoardState));
@@ -173,11 +190,13 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     if (CSC_IsAttacked(b, CSC_LSB(b->pieces[CSC_KING][p])))
     {
         b->player = 1 - p;
+        b->hash ^= keys.side;
         CSC_UndoMove(b);
         return false;
     }
 
     b->player = 1 - p;
+    b->hash ^= keys.side;
 
     return true;
 }
@@ -195,6 +214,7 @@ void CSC_UndoMove(struct CSC_Board* b)
     free(old);
 
     b->player = 1 - b->player;
+    b->hash ^= keys.side;
 
     int p = b->player;
     int s = CSC_GetMoveStart(m);
@@ -233,6 +253,15 @@ void CSC_UndoMove(struct CSC_Board* b)
 
         RemovePiece(b, 8*rank + startFile);
         AddPiece(b, 8*rank + endFile, rook);
+
+        b->hash ^= mt == CSC_KINGCASTLE
+            ? keys.castling[b->player][0]
+            : keys.castling[b->player][1];
+    }
+
+    if (mt == CSC_TWOSPACE)
+    {
+        b->hash ^= keys.enpassentFile[e % CSC_FILE_NB];
     }
 }
 

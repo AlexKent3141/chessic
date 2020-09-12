@@ -18,6 +18,7 @@ bool RunTests(char* (*tests)())
 int main()
 {
     CSC_InitBits();
+    CSC_InitZobrist();
 
     bool pass = RunTests(AllParserTests)
              && RunTests(AllMoveGenTests)

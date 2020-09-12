@@ -10,7 +10,8 @@ src_chessic= \
 	src/move.c \
 	src/movegen.c \
 	src/parser.c \
-	src/piece.c
+	src/piece.c \
+	src/zobrist.c
 
 src_test=$(src_chessic) \
 	tests/make_undo_tests.c \
