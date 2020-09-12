@@ -105,6 +105,9 @@ struct CSC_BoardState
 
     /* The previous game state. */
     struct CSC_BoardState* previousState;
+
+    /* The current board hash. */
+    CSC_Hash hash;
 };
 
 struct CSC_Board
@@ -126,9 +129,6 @@ struct CSC_Board
 
     /* The pieces of each type for each player. */
     CSC_Bitboard pieces[7][2];
-
-    /* The current board hash. */
-    CSC_Hash hash;
 };
 
 /* Bitboard constants. */

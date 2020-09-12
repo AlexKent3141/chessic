@@ -35,7 +35,7 @@ void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
     b->squares[loc] = CSC_CreatePiece(col, type);
-    b->hash ^= keys.pieceSquare[col][type][loc];
+    b->bs->hash ^= keys.pieceSquare[col][type][loc];
 }
 
 char FENFromPiece(int col, int type)
@@ -107,7 +107,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     token = strtok(NULL, " ");
     b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
-    if (b->player == CSC_WHITE) b->hash ^= keys.side;
+    if (b->player == CSC_WHITE) bs->hash ^= keys.side;
 
     // Get the castling rights.
     token = strtok(NULL, " ");
@@ -117,22 +117,22 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
         if (c == 'K')
         {
             bs->castlingRights[CSC_WHITE].kingSide = true;
-            b->hash ^= keys.castling[CSC_WHITE][0];
+            bs->hash ^= keys.castling[CSC_WHITE][0];
         }
         else if (c == 'Q')
         {
             bs->castlingRights[CSC_WHITE].queenSide = true;
-            b->hash ^= keys.castling[CSC_WHITE][1];
+            bs->hash ^= keys.castling[CSC_WHITE][1];
         }
         else if (c == 'k')
         {
             bs->castlingRights[CSC_BLACK].kingSide = true;
-            b->hash ^= keys.castling[CSC_BLACK][0];
+            bs->hash ^= keys.castling[CSC_BLACK][0];
         }
         else if (c == 'q')
         {
             bs->castlingRights[CSC_BLACK].queenSide = true;
-            b->hash ^= keys.castling[CSC_BLACK][1];
+            bs->hash ^= keys.castling[CSC_BLACK][1];
         }
     }
 
@@ -141,7 +141,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     if (token[0] != '-')
     {
         bs->enPassentIndex = LocFromFEN(token);
-        b->hash ^= keys.enpassentFile[bs->enPassentIndex % CSC_FILE_NB];
+        bs->hash ^= keys.enpassentFile[bs->enPassentIndex % CSC_FILE_NB];
     }
 
     // Get the half-move count.

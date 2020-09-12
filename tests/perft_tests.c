@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "time.h"
 
 struct TestCase
 {
@@ -95,10 +96,13 @@ char* AllPerftTests()
 {
     LoadTestCases();
 
+    time_t start = time(NULL);
     for (currentTest = 0; currentTest < numTestCases; currentTest++)
     {
         mu_run_test(PerftTest);
     }
+
+    printf("Time taken: %lds\n", (time(NULL) - start));
 
     free(testCases);
     return NULL;

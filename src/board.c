@@ -12,12 +12,12 @@ struct CSC_Board* CreateBoardEmpty()
 
     b->player = CSC_WHITE;
     b->turnNumber = 0;
-    b->hash = 0;
 
     struct CSC_BoardState* bs = malloc(sizeof(struct CSC_BoardState));
     memset(bs, 0, sizeof(struct CSC_BoardState));
     bs->enPassentIndex = CSC_BAD_LOC;
     bs->previousState = NULL;
+    bs->hash = 0;
     b->bs = bs;
 
     memset(b->squares, 0, CSC_SQUARE_NB*sizeof(CSC_Piece));
@@ -44,7 +44,7 @@ struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
 bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
 {
     /* First check the board hash - normally this is sufficient. */
-    if (b1->hash != b2->hash)
+    if (b1->bs->hash != b2->bs->hash)
         return false;
 
     /* The boards hash to the same value, need to check the details. */
@@ -62,7 +62,7 @@ bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
     return equal;
 }
 
-CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
+CSC_Piece RemovePiece(struct CSC_Board* b, int loc, CSC_Hash* hash)
 {
     CSC_Piece pc = b->squares[loc];
     int p = CSC_GetPieceColour(pc);
@@ -72,12 +72,12 @@ CSC_Piece RemovePiece(struct CSC_Board* b, int loc)
     b->all[p] ^= bit;
     b->pieces[pt][p] ^= bit;
     b->squares[loc] = 0;
-    b->hash ^= keys.pieceSquare[b->player][pt][loc];
+    *hash ^= keys.pieceSquare[b->player][pt][loc];
 
     return pc;
 }
 
-void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
+void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc, CSC_Hash* hash)
 {
     int p = CSC_GetPieceColour(pc);
     enum CSC_PieceType pt = CSC_GetPieceType(pc);
@@ -86,7 +86,7 @@ void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc)
     b->all[p] |= bit;
     b->pieces[pt][p] |= bit;
     b->squares[loc] = pc;
-    b->hash ^= keys.pieceSquare[b->player][pt][loc];
+    *hash ^= keys.pieceSquare[b->player][pt][loc];
 }
 
 bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
@@ -98,13 +98,15 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     int s = CSC_GetMoveStart(m);
     int e = CSC_GetMoveEnd(m);
 
-    CSC_Piece sp = RemovePiece(b, s);
+    CSC_Hash hash = b->bs->hash;
+
+    CSC_Piece sp = RemovePiece(b, s, &hash);
     CSC_Piece cap = b->squares[e];
 
     enum CSC_PieceType pt = CSC_GetPieceType(sp);
     enum CSC_MoveType mt = CSC_GetMoveType(m);
 
-    if (cap && mt != CSC_ENPASSENT) RemovePiece(b, e);
+    if (cap && mt != CSC_ENPASSENT) RemovePiece(b, e, &hash);
 
     if (mt == CSC_ENPASSENT)
     {
@@ -112,10 +114,11 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 
         int capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
         cap = b->squares[capLoc];
-        RemovePiece(b, capLoc);
+        RemovePiece(b, capLoc, &hash);
     }
     else if (mt == CSC_PROMOTION)
     {
+        // TODO: Hash update?
         CSC_SetPieceType(&sp, CSC_GetMovePromotion(m));
     }
     else if (mt & CSC_CASTLE)
@@ -130,16 +133,16 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
         assert(CSC_GetPieceType(rook) == CSC_ROOK);
         assert(CSC_GetPieceColour(rook) == p);
 
-        RemovePiece(b, 8*rank + startFile);
-        AddPiece(b, 8*rank + end_file, rook);
+        RemovePiece(b, 8*rank + startFile, &hash);
+        AddPiece(b, 8*rank + end_file, rook, &hash);
 
-        b->hash ^= mt == CSC_KINGCASTLE
+        hash ^= mt == CSC_KINGCASTLE
             ? keys.castling[b->player][0]
             : keys.castling[b->player][1];
     }
 
     // Add the piece back now that the promotion has been applied.
-    AddPiece(b, e, sp);
+    AddPiece(b, e, sp, &hash);
 
     struct CSC_CastlingRights ourCastlingRights = b->bs->castlingRights[p];
     if (pt == CSC_KING)
@@ -168,7 +171,7 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     if (mt == CSC_TWOSPACE)
     {
         ep = e + (p == CSC_WHITE ? -8 : 8);
-        b->hash ^= keys.enpassentFile[e % CSC_FILE_NB];
+        hash ^= keys.enpassentFile[e % CSC_FILE_NB];
     }
 
     // Clone the previous board state.
@@ -179,6 +182,7 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     next->castlingRights[p] = ourCastlingRights;
     next->castlingRights[1-p] = theirCastlingRights;
     next->enPassentIndex = ep;
+    next->hash = hash;
 
     ++next->plies50Move;
     if (cap || pt == CSC_PAWN) next->plies50Move = 0;
@@ -190,13 +194,12 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     if (CSC_IsAttacked(b, CSC_LSB(b->pieces[CSC_KING][p])))
     {
         b->player = 1 - p;
-        b->hash ^= keys.side;
         CSC_UndoMove(b);
         return false;
     }
 
     b->player = 1 - p;
-    b->hash ^= keys.side;
+    next->hash ^= keys.side;
 
     return true;
 }
@@ -214,21 +217,21 @@ void CSC_UndoMove(struct CSC_Board* b)
     free(old);
 
     b->player = 1 - b->player;
-    b->hash ^= keys.side;
 
     int p = b->player;
     int s = CSC_GetMoveStart(m);
     int e = CSC_GetMoveEnd(m);
+    CSC_Hash temp;
 
     // Move the pieces back.
     CSC_Piece pc = b->squares[e];
 
-    RemovePiece(b, e);
+    RemovePiece(b, e, &temp);
 
     enum CSC_MoveType mt = CSC_GetMoveType(m);
     if (mt == CSC_PROMOTION) CSC_SetPieceType(&pc, CSC_PAWN);
 
-    AddPiece(b, s, pc);
+    AddPiece(b, s, pc, &temp);
 
     if (cap)
     {
@@ -236,7 +239,7 @@ void CSC_UndoMove(struct CSC_Board* b)
         if (mt == CSC_ENPASSENT)
             capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
 
-        AddPiece(b, capLoc, cap);
+        AddPiece(b, capLoc, cap, &temp);
     }
 
     if (mt & CSC_CASTLE)
@@ -251,17 +254,8 @@ void CSC_UndoMove(struct CSC_Board* b)
         assert(CSC_GetPieceType(rook) == CSC_ROOK);
         assert(CSC_GetPieceColour(rook) == p);
 
-        RemovePiece(b, 8*rank + startFile);
-        AddPiece(b, 8*rank + endFile, rook);
-
-        b->hash ^= mt == CSC_KINGCASTLE
-            ? keys.castling[b->player][0]
-            : keys.castling[b->player][1];
-    }
-
-    if (mt == CSC_TWOSPACE)
-    {
-        b->hash ^= keys.enpassentFile[e % CSC_FILE_NB];
+        RemovePiece(b, 8*rank + startFile, &temp);
+        AddPiece(b, 8*rank + endFile, rook, &temp);
     }
 }
 
