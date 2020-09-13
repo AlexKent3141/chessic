@@ -25,15 +25,23 @@ typedef uint32_t CSC_Move;
 typedef uint16_t CSC_Piece;
 typedef uint64_t CSC_Hash;
 
-typedef enum
+enum CSC_Directions
 {
-    N, S, W, E, NE, NW, SE, SW
-} Directions;
+    CSC_NORTH,
+    CSC_SOUTH,
+    CSC_WEST,
+    CSC_EAST,
+    CSC_NORTHEAST,
+    CSC_NORTHWEST,
+    CSC_SOUTHEAST,
+    CSC_SOUTHWEST
+};
 
-typedef enum
+enum CSC_RayType
 {
-    ORTH, DIAG
-} RayType;
+    CSC_ORTHOGONAL,
+    CSC_DIAGONAL
+};
 
 enum CSC_Colour
 {
@@ -136,12 +144,12 @@ struct CSC_Board
 };
 
 /* Bitboard constants. */
-EXPORT extern CSC_Bitboard Ranks[8];
-EXPORT extern CSC_Bitboard Files[8];
-EXPORT extern CSC_Bitboard KnightAttacks[64];
-EXPORT extern CSC_Bitboard KingAttacks[64];
-EXPORT extern CSC_Bitboard RayAttacks[64][8];
-EXPORT extern CSC_Bitboard RayAttacksAll[64][2];
+EXPORT extern CSC_Bitboard CSC_Ranks[8];
+EXPORT extern CSC_Bitboard CSC_Files[8];
+EXPORT extern CSC_Bitboard CSC_KnightAttacks[64];
+EXPORT extern CSC_Bitboard CSC_KingAttacks[64];
+EXPORT extern CSC_Bitboard CSC_RayAttacks[64][8];
+EXPORT extern CSC_Bitboard CSC_RayAttacksAll[64][2];
 
 /* Initialisation functions which must be called first. */
 EXPORT void CSC_InitBits();

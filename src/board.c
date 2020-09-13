@@ -338,35 +338,35 @@ bool IsOrthAttacked(
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     CSC_Bitboard ray, attackers;
 
-    ray = rays[loc][N];
+    ray = rays[loc][CSC_NORTH];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_LSB(attackers)][N]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][CSC_NORTH]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][E];
+    ray = rays[loc][CSC_EAST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_LSB(attackers)][E]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][CSC_EAST]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][S];
+    ray = rays[loc][CSC_SOUTH];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_MSB(attackers)][S]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][CSC_SOUTH]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][W];
+    ray = rays[loc][CSC_WEST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_MSB(attackers)][W]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][CSC_WEST]);
         if (!(ray & all)) return true;
     }
 
@@ -382,35 +382,35 @@ bool IsDiagAttacked(
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     CSC_Bitboard ray, attackers;
 
-    ray = rays[loc][NE];
+    ray = rays[loc][CSC_NORTHEAST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_LSB(attackers)][NE]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][CSC_NORTHEAST]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][NW];
+    ray = rays[loc][CSC_NORTHWEST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_LSB(attackers)][NW]);
+        ray ^= (attackers | rays[CSC_LSB(attackers)][CSC_NORTHWEST]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][SE];
+    ray = rays[loc][CSC_SOUTHEAST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_MSB(attackers)][SE]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][CSC_SOUTHEAST]);
         if (!(ray & all)) return true;
     }
 
-    ray = rays[loc][SW];
+    ray = rays[loc][CSC_SOUTHWEST];
     attackers = ray & targets;
     if (attackers)
     {
-        ray ^= (attackers | rays[CSC_MSB(attackers)][SW]);
+        ray ^= (attackers | rays[CSC_MSB(attackers)][CSC_SOUTHWEST]);
         if (!(ray & all)) return true;
     }
 
@@ -423,21 +423,21 @@ bool CSC_IsAttacked(struct CSC_Board* b, int loc)
     int e = 1-p;
 
     // Check steppers.
-    if (KingAttacks[loc] & b->pieces[CSC_KING][e]) return true;
-    if (KnightAttacks[loc] & b->pieces[CSC_KNIGHT][e]) return true;
+    if (CSC_KingAttacks[loc] & b->pieces[CSC_KING][e]) return true;
+    if (CSC_KnightAttacks[loc] & b->pieces[CSC_KNIGHT][e]) return true;
 
     // Check orthogonal rays.
     CSC_Bitboard targets = b->pieces[CSC_ROOK][e] | b->pieces[CSC_QUEEN][e];
-    if (RayAttacksAll[loc][ORTH] & targets)
+    if (CSC_RayAttacksAll[loc][CSC_ORTHOGONAL] & targets)
     {
-        if (IsOrthAttacked(b, loc, targets, RayAttacks)) return true;
+        if (IsOrthAttacked(b, loc, targets, CSC_RayAttacks)) return true;
     }
 
     // Check diagonal rays.
     targets = b->pieces[CSC_BISHOP][e] | b->pieces[CSC_QUEEN][e];
-    if (RayAttacksAll[loc][DIAG] & targets)
+    if (CSC_RayAttacksAll[loc][CSC_DIAGONAL] & targets)
     {
-        if (IsDiagAttacked(b, loc, targets, RayAttacks)) return true;
+        if (IsDiagAttacked(b, loc, targets, CSC_RayAttacks)) return true;
     }
 
     // Check pawns.
@@ -445,8 +445,8 @@ bool CSC_IsAttacked(struct CSC_Board* b, int loc)
     CSC_Bitboard pawns = b->pieces[CSC_PAWN][e];
 
     CSC_Bitboard attackers = 0;
-    if (!(bit & Files[0])) attackers |= e == CSC_WHITE ? bit >> 9 : bit << 7;
-    if (!(bit & Files[7])) attackers |= e == CSC_WHITE ? bit >> 7 : bit << 9;
+    if (!(bit & CSC_Files[0])) attackers |= e == CSC_WHITE ? bit >> 9 : bit << 7;
+    if (!(bit & CSC_Files[7])) attackers |= e == CSC_WHITE ? bit >> 7 : bit << 9;
     if (attackers & pawns) return true;
 
     return false;

@@ -38,7 +38,7 @@ void FindPawnMoves(
     int p = b->player;
     CSC_Bitboard enemies = b->all[1-p];
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
-    CSC_Bitboard promo = p == CSC_WHITE ? Ranks[6] : Ranks[1];
+    CSC_Bitboard promo = p == CSC_WHITE ? CSC_Ranks[6] : CSC_Ranks[1];
     int forward = p == CSC_WHITE ? CSC_FILE_NB : -CSC_FILE_NB;
     int capLeft = CSC_FILE_NB-1;
     int capRight = CSC_FILE_NB+1;
@@ -54,8 +54,8 @@ void FindPawnMoves(
         f1 &= ~all;
 
         CSC_Bitboard f2 = p == CSC_WHITE
-            ? (f1 & Ranks[2]) << CSC_FILE_NB
-            : (f1 & Ranks[5]) >> CSC_FILE_NB;
+            ? (f1 & CSC_Ranks[2]) << CSC_FILE_NB
+            : (f1 & CSC_Ranks[5]) >> CSC_FILE_NB;
 
         f2 &= ~all;
 
@@ -69,8 +69,8 @@ void FindPawnMoves(
         CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & ~promo;
 
         // Ensure that no captures wrap around the struct CSC_Board.
-        CSC_Bitboard leftCapPawns = pawns & ~Files[0];
-        CSC_Bitboard rightCapPawns = pawns & ~Files[7];
+        CSC_Bitboard leftCapPawns = pawns & ~CSC_Files[0];
+        CSC_Bitboard rightCapPawns = pawns & ~CSC_Files[7];
 
         // Defining left and right from white's perspective...
         CSC_Bitboard leftCaps = p == CSC_WHITE
@@ -98,12 +98,12 @@ void FindPawnMoves(
 
             // Need to shift "backwards" from the ep location.
             CSC_Bitboard caps = 0;
-            if (!(ep & Files[0]))
+            if (!(ep & CSC_Files[0]))
             {
                 caps |= p == CSC_WHITE ? ep >> capRight : ep << capLeft;
             }
 
-            if (!(ep & Files[7]))
+            if (!(ep & CSC_Files[7]))
             {
                 caps |= p == CSC_WHITE ? ep >> capLeft : ep << capRight;
             }
@@ -129,8 +129,8 @@ void FindPawnMoves(
         if (type & CSC_CAPTURES)
         {
             // Ensure that no captures wrap around the struct CSC_Board.
-            CSC_Bitboard leftCapPawns = pawns & ~Files[0];
-            CSC_Bitboard rightCapPawns = pawns & ~Files[7];
+            CSC_Bitboard leftCapPawns = pawns & ~CSC_Files[0];
+            CSC_Bitboard rightCapPawns = pawns & ~CSC_Files[7];
 
             // Defining left and right from white's perspective...
             CSC_Bitboard leftCaps = p == CSC_WHITE
@@ -184,7 +184,7 @@ void FindKnightMoves(
     struct CSC_MoveList* l,
     CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[CSC_KNIGHT][b->player], targets, KnightAttacks);
+    FindStepperMoves(l, b->pieces[CSC_KNIGHT][b->player], targets, CSC_KnightAttacks);
 }
 
 void FindCastlingMoves(
@@ -223,7 +223,7 @@ void FindKingMoves(
     struct CSC_MoveList* l,
     CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, KingAttacks);
+    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, CSC_KingAttacks);
     FindCastlingMoves(b, l);
 }
 
@@ -242,24 +242,24 @@ void FindOrthMoves(
     {
         p = CSC_PopLSB(&pieces);
 
-        ray = rays[p][N];
+        ray = rays[p][CSC_NORTH];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][N];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTH];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][E];
+        ray = rays[p][CSC_EAST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][E];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_EAST];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][S];
+        ray = rays[p][CSC_SOUTH];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][S];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTH];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][W];
+        ray = rays[p][CSC_WEST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][W];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_WEST];
         AddMoves(p, l, ray & targets);
     }
 }
@@ -279,24 +279,24 @@ void FindDiagMoves(
     {
         p = CSC_PopLSB(&pieces);
 
-        ray = rays[p][NW];
+        ray = rays[p][CSC_NORTHWEST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][NW];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHWEST];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][NE];
+        ray = rays[p][CSC_NORTHEAST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][NE];
+        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHEAST];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][SW];
+        ray = rays[p][CSC_SOUTHWEST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][SW];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHWEST];
         AddMoves(p, l, ray & targets);
 
-        ray = rays[p][SE];
+        ray = rays[p][CSC_SOUTHEAST];
         blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][SE];
+        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHEAST];
         AddMoves(p, l, ray & targets);
     }
 }
@@ -319,10 +319,10 @@ struct CSC_MoveList* CSC_GetMoves(
     FindKingMoves(b, l, targets);
 
     CSC_Bitboard orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindOrthMoves(b, l, orth, targets, RayAttacks);
+    FindOrthMoves(b, l, orth, targets, CSC_RayAttacks);
 
     CSC_Bitboard diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindDiagMoves(b, l, diag, targets, RayAttacks);
+    FindDiagMoves(b, l, diag, targets, CSC_RayAttacks);
 
     return l;
 }

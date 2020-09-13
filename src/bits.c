@@ -1,12 +1,12 @@
 #include "../include/chessic.h"
 #include "stdio.h"
 
-CSC_Bitboard Ranks[8];
-CSC_Bitboard Files[8];
-CSC_Bitboard KnightAttacks[64];
-CSC_Bitboard KingAttacks[64];
-CSC_Bitboard RayAttacks[64][8];
-CSC_Bitboard RayAttacksAll[64][2];
+CSC_Bitboard CSC_Ranks[8];
+CSC_Bitboard CSC_Files[8];
+CSC_Bitboard CSC_KnightAttacks[64];
+CSC_Bitboard CSC_KingAttacks[64];
+CSC_Bitboard CSC_RayAttacks[64][8];
+CSC_Bitboard CSC_RayAttacksAll[64][2];
 
 void InitSteppers()
 {
@@ -36,8 +36,8 @@ void InitSteppers()
                 if (r1 > -1 && r1 < 8 && f1 > -1 && f1 < 8) kc |= (CSC_Bitboard)1 << (8*r1+f1);
             }
 
-            KnightAttacks[8*r+f] = nc;
-            KingAttacks[8*r+f] = kc;
+            CSC_KnightAttacks[8*r+f] = nc;
+            CSC_KingAttacks[8*r+f] = kc;
         }
     }
 }
@@ -52,7 +52,11 @@ void InitRays()
     for (int f = 0; f < 8; f++)
     {
         CSC_Bitboard c = fileStart;
-        for (int r = 0; r < 8; r++, c <<= 8) RayAttacks[8*r+f][N] = c;
+        for (int r = 0; r < 8; r++, c <<= 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_NORTH] = c;
+        }
+
         fileStart <<= 1;
     }
 
@@ -61,7 +65,11 @@ void InitRays()
     for (int f = 7; f >= 0; f--)
     {
         CSC_Bitboard c = fileStart;
-        for (int r = 7; r >= 0; r--, c >>= 8) RayAttacks[8*r+f][S] = c;
+        for (int r = 7; r >= 0; r--, c >>= 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_SOUTH] = c;
+        }
+
         fileStart >>= 1;
     }
 
@@ -70,7 +78,11 @@ void InitRays()
     for (int r = 0; r < 8; r++)
     {
         CSC_Bitboard c = rankStart;
-        for (int f = 0; f < 8; f++, c = (c & ~Files[7]) << 1) RayAttacks[8*r+f][E] = c;
+        for (int f = 0; f < 8; f++, c = (c & ~CSC_Files[7]) << 1)
+        {
+            CSC_RayAttacks[8*r+f][CSC_EAST] = c;
+        }
+
         rankStart <<= 8;
     }
 
@@ -79,7 +91,11 @@ void InitRays()
     for (int r = 0; r < 8; r++)
     {
         CSC_Bitboard c = rankStart;
-        for (int f = 7; f >= 0; f--, c = (c & ~Files[0]) >> 1) RayAttacks[8*r+f][W] = c;
+        for (int f = 7; f >= 0; f--, c = (c & ~CSC_Files[0]) >> 1)
+        {
+            CSC_RayAttacks[8*r+f][CSC_WEST] = c;
+        }
+
         rankStart <<= 8;
     }
 
@@ -88,8 +104,12 @@ void InitRays()
     for (int f = 0; f < 8; f++)
     {
         CSC_Bitboard c = diagStart;
-        for (int r = 0; r < 8; r++, c = (c & ~Ranks[7]) << 8) RayAttacks[8*r+f][NE] = c;
-        diagStart = (diagStart & ~Files[7]) << 1;
+        for (int r = 0; r < 8; r++, c = (c & ~CSC_Ranks[7]) << 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_NORTHEAST] = c;
+        }
+
+        diagStart = (diagStart & ~CSC_Files[7]) << 1;
     }
 
     // North-west: start from H1.
@@ -97,8 +117,12 @@ void InitRays()
     for (int f = 7; f >= 0; f--)
     {
         CSC_Bitboard c = diagStart;
-        for (int r = 0; r < 8; r++, c = (c & ~Ranks[7]) << 8) RayAttacks[8*r+f][NW] = c;
-        diagStart = (diagStart & ~Files[0]) >> 1;
+        for (int r = 0; r < 8; r++, c = (c & ~CSC_Ranks[7]) << 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_NORTHWEST] = c;
+        }
+
+        diagStart = (diagStart & ~CSC_Files[0]) >> 1;
     }
 
     // South-east: start from A8.
@@ -106,8 +130,12 @@ void InitRays()
     for (int f = 0; f < 8; f++)
     {
         CSC_Bitboard c = diagStart;
-        for (int r = 7; r >= 0; r--, c = (c & ~Ranks[0]) >> 8) RayAttacks[8*r+f][SE] = c;
-        diagStart = (diagStart & ~Files[7]) << 1;
+        for (int r = 7; r >= 0; r--, c = (c & ~CSC_Ranks[0]) >> 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_SOUTHEAST] = c;
+        }
+
+        diagStart = (diagStart & ~CSC_Files[7]) << 1;
     }
 
     // South-west: start from H8.
@@ -115,28 +143,38 @@ void InitRays()
     for (int f = 7; f >= 0; f--)
     {
         CSC_Bitboard c = diagStart;
-        for (int r = 7; r >= 0; r--, c = (c & ~Ranks[0]) >> 8) RayAttacks[8*r+f][SW] = c;
-        diagStart = (diagStart & ~Files[0]) >> 1;
+        for (int r = 7; r >= 0; r--, c = (c & ~CSC_Ranks[0]) >> 8)
+        {
+            CSC_RayAttacks[8*r+f][CSC_SOUTHWEST] = c;
+        }
+
+        diagStart = (diagStart & ~CSC_Files[0]) >> 1;
     }
 
     // Make the combined orthogonal and diagonal rays.
     for (int i = 0; i < 64; i++)
     {
-        RayAttacksAll[i][ORTH] =
-            RayAttacks[i][N] | RayAttacks[i][E] | RayAttacks[i][S] | RayAttacks[i][W];
+        CSC_RayAttacksAll[i][CSC_ORTHOGONAL] =
+            CSC_RayAttacks[i][CSC_NORTH]
+          | CSC_RayAttacks[i][CSC_EAST]
+          | CSC_RayAttacks[i][CSC_SOUTH]
+          | CSC_RayAttacks[i][CSC_WEST];
 
-        RayAttacksAll[i][DIAG] =
-            RayAttacks[i][NE] | RayAttacks[i][NW] | RayAttacks[i][SE] | RayAttacks[i][SW];
+        CSC_RayAttacksAll[i][CSC_DIAGONAL] =
+            CSC_RayAttacks[i][CSC_NORTHEAST]
+          | CSC_RayAttacks[i][CSC_NORTHWEST]
+          | CSC_RayAttacks[i][CSC_SOUTHEAST]
+          | CSC_RayAttacks[i][CSC_SOUTHWEST];
     }
 }
 
 void CSC_InitBits()
 {
-    Ranks[0] = 0xFF;
-    for (int i = 1; i < 8; i++) Ranks[i] = Ranks[i-1] << 8;
+    CSC_Ranks[0] = 0xFF;
+    for (int i = 1; i < 8; i++) CSC_Ranks[i] = CSC_Ranks[i-1] << 8;
 
-    Files[0] = 0x0101010101010101;
-    for (int i = 1; i < 8; i++) Files[i] = Files[i-1] << 1;
+    CSC_Files[0] = 0x0101010101010101;
+    for (int i = 1; i < 8; i++) CSC_Files[i] = CSC_Files[i-1] << 1;
 
     InitSteppers();
     InitRays();
