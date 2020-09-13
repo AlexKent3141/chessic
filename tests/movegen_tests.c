@@ -62,12 +62,38 @@ char* MoveGenTest5()
     return MoveGenTest("rnbqkbnr/ppp1pppp/8/2PpP3/8/8/PP1P1PPP/RNBQKBNR w KQkq d6 0 1", 34);
 }
 
-/* In this test I use the starting position and repeatedly move knights until
-   the game should be drawn by repetition. In this situation no moves should
+/* In this test I use the starting position and repeatedly move knights until the game should be drawn by repetition. In this situation no moves should
    be generated. */
 char* MoveGenTestDrawByRepetition1()
 {
-    // TODO
+    struct CSC_Board* b = CSC_BoardFromFEN(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+    for (int turn = 0; turn < 3; turn++)
+    {
+        CSC_Move whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
+        CSC_MakeMove(b, whiteKnightForward);
+
+        CSC_Move blackKnightForward = CSC_MoveFromUCIString(b, "g8f6");
+        CSC_MakeMove(b, blackKnightForward);
+
+        CSC_Move whiteKnightBack = CSC_MoveFromUCIString(b, "f3g1");
+        CSC_MakeMove(b, whiteKnightBack);
+
+        CSC_Move blackKnightBack = CSC_MoveFromUCIString(b, "f6g8");
+        CSC_MakeMove(b, blackKnightBack);
+    }
+
+    /* Now when the white knight moves out again the game should be drawn. */
+    CSC_Move whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
+    CSC_MakeMove(b, whiteKnightForward);
+
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    mu_assert("No moves should be available because the game is drawn", l->n == 0);
+
+    CSC_FreeMoveList(l);
+    CSC_FreeBoard(b);
+
     return NULL;
 }
 
@@ -78,5 +104,6 @@ char* AllMoveGenTests()
     mu_run_test(MoveGenTest3);
     mu_run_test(MoveGenTest4);
     mu_run_test(MoveGenTest5);
+    mu_run_test(MoveGenTestDrawByRepetition1);
     return NULL;
 }

@@ -287,11 +287,15 @@ void CSC_FreeBoard(struct CSC_Board* b)
 {
     if (b)
     {
-        if (b->bs)
+        struct CSC_BoardState* bs = b->bs;
+        while (bs != NULL)
         {
-            free(b->bs);
-            b->bs = NULL;
+            struct CSC_BoardState* prev = bs->previousState;
+            free(bs);
+            bs = prev;
         }
+
+        b->bs = NULL;
 
         free(b);
         b = NULL;
