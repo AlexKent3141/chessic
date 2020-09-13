@@ -306,6 +306,9 @@ struct CSC_MoveList* CSC_GetMoves(
     enum CSC_MoveType type)
 {
     struct CSC_MoveList* l = CSC_MakeMoveList();
+
+    if (CSC_IsDrawn(b)) return l;
+
     FindPawnMoves(b, l, type);
 
     CSC_Bitboard targets = 0;

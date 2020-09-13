@@ -92,7 +92,10 @@ struct CSC_BoardState
     CSC_Move lastMove;
 
     /* The piece that was captured on the last move. */
-    CSC_Piece captureOnLastMove;
+    CSC_Piece lastMoveCapture;
+
+    /* The type of piece that moved on the last move. */
+    enum CSC_PieceType lastMovePieceType;
 
     /* The index of the square where an en-passent capture is possible. */
     int enPassentIndex;
@@ -103,11 +106,11 @@ struct CSC_BoardState
     /* The castling rights for each player. */
     struct CSC_CastlingRights castlingRights[2];
 
-    /* The previous game state. */
-    struct CSC_BoardState* previousState;
-
     /* The current board hash. */
     CSC_Hash hash;
+
+    /* The previous game state. */
+    struct CSC_BoardState* previousState;
 };
 
 struct CSC_Board
@@ -158,6 +161,9 @@ EXPORT struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
 EXPORT bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
 EXPORT void CSC_FreeBoard(struct CSC_Board*);
 EXPORT void CSC_PrintBoard(struct CSC_Board*);
+
+/* Check whether the board is in a drawn state. */
+EXPORT bool CSC_IsDrawn(struct CSC_Board*);
 
 /* Generate pseudo-legal moves. */
 EXPORT struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);

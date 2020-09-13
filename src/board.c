@@ -35,6 +35,7 @@ struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
     memcpy(copy, b, sizeof(struct CSC_Board));
 
     /* Perform a deep copy of the board state. */
+    /* TODO: Should we copy all previous board states here? */
     copy->bs = malloc(sizeof(struct CSC_BoardState));
     memcpy(copy->bs, b->bs, sizeof(struct CSC_BoardState));
 
@@ -178,10 +179,11 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     struct CSC_BoardState* next = malloc(sizeof(struct CSC_BoardState));
     memcpy(next, b->bs, sizeof(struct CSC_BoardState));
     next->lastMove = m;
-    next->captureOnLastMove = cap;
+    next->lastMoveCapture = cap;
+    next->lastMovePieceType = pt;
+    next->enPassentIndex = ep;
     next->castlingRights[p] = ourCastlingRights;
     next->castlingRights[1-p] = theirCastlingRights;
-    next->enPassentIndex = ep;
     next->hash = hash;
 
     ++next->plies50Move;
@@ -212,7 +214,7 @@ void CSC_UndoMove(struct CSC_Board* b)
     // Extract the required info from the state and revert to previous.
     struct CSC_BoardState* old = b->bs;
     CSC_Move m = old->lastMove;
-    int cap = old->captureOnLastMove;
+    int cap = old->lastMoveCapture;
     b->bs = old->previousState;
     free(old);
 
@@ -257,6 +259,28 @@ void CSC_UndoMove(struct CSC_Board* b)
         RemovePiece(b, 8*rank + startFile, &temp);
         AddPiece(b, 8*rank + endFile, rook, &temp);
     }
+}
+
+bool CSC_IsDrawn(struct CSC_Board* b)
+{
+    if (b->bs->plies50Move >= 50) return true;
+
+    /* Examine hashes to determine whether there has been a draw by repetition. */
+    /* When checking these we can stop when we find the first irreversible move
+       i.e. a pawn move or a capture. */
+    CSC_Hash latestHash = b->bs->hash;
+    int hashCount = 1;
+    struct CSC_BoardState* prev = b->bs->previousState;
+    while (prev != NULL
+        && !prev->lastMoveCapture
+        && prev->lastMovePieceType != CSC_PAWN
+        && hashCount < 3)
+    {
+        hashCount += prev->hash == latestHash;
+        prev = prev->previousState;
+    }
+
+    return hashCount >= 3;
 }
 
 void CSC_FreeBoard(struct CSC_Board* b)
