@@ -163,11 +163,8 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     return b;
 }
 
-char* CSC_FENFromBoard(struct CSC_Board* b)
+void CSC_FENFromBoard(struct CSC_Board* b, char* buf, int* len)
 {
-    char* fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
-    memset(fen, 0, CSC_MAX_FEN_LENGTH*sizeof(char));
-
     struct CSC_BoardState* bs = b->bs;
 
     // Set the piece definitions.
@@ -181,9 +178,9 @@ char* CSC_FENFromBoard(struct CSC_Board* b)
             LocDetails(b, 8*r+f, &col, &type);
             if (type != CSC_NONE)
             {
-                if (e) fen[i++] = e + '0';
+                if (e) buf[i++] = e + '0';
                 e = 0;
-                fen[i++] = FENFromPiece(col, type);
+                buf[i++] = FENFromPiece(col, type);
             }
             else
             {
@@ -191,53 +188,53 @@ char* CSC_FENFromBoard(struct CSC_Board* b)
             }
         }
 
-        if (e) fen[i++] = e + '0';
-        if (r) fen[i++] = '/';
+        if (e) buf[i++] = e + '0';
+        if (r) buf[i++] = '/';
     }
 
-    fen[i++] = ' ';
-    fen[i++] = b->player == CSC_WHITE ? 'w' : 'b';
+    buf[i++] = ' ';
+    buf[i++] = b->player == CSC_WHITE ? 'w' : 'b';
 
-    fen[i++] = ' ';
+    buf[i++] = ' ';
     int start = i;
-    if (bs->castlingRights[CSC_WHITE].kingSide) fen[i++] = 'K';
-    if (bs->castlingRights[CSC_WHITE].queenSide) fen[i++] = 'Q';
-    if (bs->castlingRights[CSC_BLACK].kingSide) fen[i++] = 'k';
-    if (bs->castlingRights[CSC_BLACK].queenSide) fen[i++] = 'q';
-    if (i == start) fen[i++] = '-';
+    if (bs->castlingRights[CSC_WHITE].kingSide) buf[i++] = 'K';
+    if (bs->castlingRights[CSC_WHITE].queenSide) buf[i++] = 'Q';
+    if (bs->castlingRights[CSC_BLACK].kingSide) buf[i++] = 'k';
+    if (bs->castlingRights[CSC_BLACK].queenSide) buf[i++] = 'q';
+    if (i == start) buf[i++] = '-';
 
-    fen[i++] = ' ';
+    buf[i++] = ' ';
     if (bs->enPassentIndex != CSC_BAD_LOC)
     {
-        fen[i++] = (bs->enPassentIndex % 8) + 'a';
-        fen[i++] = (bs->enPassentIndex / 8) + '1';
+        buf[i++] = (bs->enPassentIndex % 8) + 'a';
+        buf[i++] = (bs->enPassentIndex / 8) + '1';
     }
     else
     {
-        fen[i++] = '-';
+        buf[i++] = '-';
     }
 
-    fen[i++] = ' ';
+    buf[i++] = ' ';
 
     // Serialise the half-move count.
     const int MaxTurnLength = 10;
-    char* buf = malloc(MaxTurnLength*sizeof(char));
-    memset(buf, 0, MaxTurnLength*sizeof(char));
-    snprintf(buf, 10, "%d", bs->plies50Move);
-    for (size_t j = 0; j < strlen(buf); j++) fen[i++] = buf[j];
+    char* numBuf = malloc(MaxTurnLength*sizeof(char));
+    memset(numBuf, 0, MaxTurnLength*sizeof(char));
+    snprintf(numBuf, 10, "%d", bs->plies50Move);
+    for (size_t j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
 
-    fen[i++] = ' ';
+    buf[i++] = ' ';
 
     // Serialise the number of full turns.
-    memset(buf, 0, MaxTurnLength*sizeof(char));
-    snprintf(buf, 10, "%d", b->turnNumber);
-    for (size_t j = 0; j < strlen(buf); j++) fen[i++] = buf[j];
+    memset(numBuf, 0, MaxTurnLength*sizeof(char));
+    snprintf(numBuf, 10, "%d", b->turnNumber);
+    for (size_t j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
 
-    fen[i] = '\0';
+    buf[i] = '\0';
 
-    free(buf);
+    if (len != NULL) *len = i;
 
-    return fen;
+    free(numBuf);
 }
 
 void CSC_MoveToUCIString(CSC_Move move, char* buf, int* len)
@@ -262,7 +259,7 @@ void CSC_MoveToUCIString(CSC_Move move, char* buf, int* len)
     if (len != NULL) *len = numChars;
 }
 
-CSC_Move CSC_MoveFromUCIString(struct CSC_Board* b, char* buf)
+CSC_Move CSC_MoveFromUCIString(struct CSC_Board* b, const char* buf)
 {
     char fileStart = buf[0] - 'a';
     char rankStart = buf[1] - '1';

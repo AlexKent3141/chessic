@@ -10,13 +10,15 @@ char* FENTest(const char* fen)
     printf("FEN: %s\n", fen);
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
     CSC_PrintBoard(b);
-    char* out = CSC_FENFromBoard(b);
+
+    char* buf = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    CSC_FENFromBoard(b, buf, NULL);
     CSC_FreeBoard(b);
-    printf("Output: %s\n", out);
+    printf("Output: %s\n", buf);
 
-    mu_assert("Mismatch detected in FEN output", strcmp(fen, out) == 0);
+    mu_assert("Mismatch detected in FEN output", strcmp(fen, buf) == 0);
 
-    free(out);
+    free(buf);
 
     return NULL;
 }

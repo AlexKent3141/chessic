@@ -165,7 +165,7 @@ EXPORT void CSC_PrintBitboard(CSC_Bitboard);
 
 /* Methods for creating and interacting with the board. */
 EXPORT struct CSC_Board* CSC_BoardFromFEN(const char*);
-EXPORT char* CSC_FENFromBoard(struct CSC_Board*);
+EXPORT void CSC_FENFromBoard(struct CSC_Board*, char*, int*);
 EXPORT struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
 EXPORT bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
 EXPORT void CSC_FreeBoard(struct CSC_Board*);
@@ -202,7 +202,7 @@ EXPORT void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
 EXPORT void CSC_FreeMoveList(struct CSC_MoveList*);
 
 EXPORT void CSC_MoveToUCIString(CSC_Move, char*, int*);
-EXPORT CSC_Move CSC_MoveFromUCIString(struct CSC_Board*, char*);
+EXPORT CSC_Move CSC_MoveFromUCIString(struct CSC_Board*, const char*);
 
 #ifdef __cplusplus
 }
