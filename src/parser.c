@@ -7,12 +7,10 @@
 #include "stdlib.h"
 #include "string.h"
 
-void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
+enum CSC_PieceType PieceTypeFromFEN(char c)
 {
-    int col = isupper(c) ? CSC_WHITE : CSC_BLACK;
-    char l = tolower(c);
     int type = CSC_PAWN;
-    switch (l)
+    switch (c)
     {
         case 'n':
             type = CSC_KNIGHT;
@@ -30,6 +28,14 @@ void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
             type = CSC_KING;
             break;
     }
+
+    return type;
+}
+
+void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
+{
+    int col = isupper(c) ? CSC_WHITE : CSC_BLACK;
+    enum CSC_PieceType type = PieceTypeFromFEN(tolower(c));
 
     CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
     b->all[col] |= bit;
@@ -232,4 +238,70 @@ char* CSC_FENFromBoard(struct CSC_Board* b)
     free(buf);
 
     return fen;
+}
+
+void CSC_MoveToUCIString(CSC_Move move, char* buf, int* len)
+{
+    char start = CSC_GetMoveStart(move);
+    char end = CSC_GetMoveEnd(move);
+    buf[0] = (start % CSC_FILE_NB) + 'a';
+    buf[1] = (start / CSC_RANK_NB) + '1';
+    buf[2] = (end % CSC_FILE_NB) + 'a';
+    buf[3] = (end / CSC_RANK_NB) + '1';
+
+    int numChars = 4;
+    if (CSC_GetMoveType(move) & CSC_PROMOTION)
+    {
+        /* Specified black here so we get a lowercase character. */
+        buf[4] = FENFromPiece(CSC_BLACK, CSC_GetMovePromotion(move));
+        numChars = 5;
+    }
+
+    buf[numChars] = '\0';
+
+    if (len != NULL) *len = numChars;
+}
+
+CSC_Move CSC_MoveFromUCIString(struct CSC_Board* b, char* buf)
+{
+    char fileStart = buf[0] - 'a';
+    char rankStart = buf[1] - '1';
+    char fileEnd = buf[2] - 'a';
+    char rankEnd = buf[3] - '1';
+
+    int start = CSC_FILE_NB*rankStart + fileStart;
+    int end = CSC_FILE_NB*rankEnd + fileEnd;
+
+    /* Next work out the move type (this is why we need the board). */
+    CSC_Piece p = b->squares[start];
+    enum CSC_PieceType promotionType = CSC_NONE;
+    enum CSC_MoveType mt = CSC_NORMAL;
+
+    if (CSC_GetPieceType(p) == CSC_KING && abs(fileStart - fileEnd) == 2)
+    {
+        /* Castling move. */
+        mt = fileEnd == 6 ? CSC_KINGCASTLE : CSC_QUEENCASTLE;
+    }
+    else if (CSC_GetPieceType(p) == CSC_PAWN
+         && (rankEnd == 0 || rankEnd == CSC_RANK_NB - 1))
+    {
+        /* Pawn promotion - read the next character for the type. */
+        promotionType = PieceTypeFromFEN(buf[4]);
+        mt = CSC_PROMOTION;
+    }
+    else if (CSC_GetPieceType(p) == CSC_PAWN
+        && abs(rankStart - rankEnd) == 2)
+    {
+        mt = CSC_TWOSPACE;
+    }
+    else if (CSC_GetPieceType(p) == CSC_PAWN
+        && fileStart != fileEnd
+        && !b->squares[end])
+    {
+        /* A pawn is performing a capture but there is no target piece.
+           This must be an en-passent capture. */
+        mt = CSC_ENPASSENT;
+    }
+
+    return CSC_CreateMove(start, end, promotionType, mt);
 }

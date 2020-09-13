@@ -37,15 +37,6 @@ enum CSC_MoveType CSC_GetMoveType(CSC_Move m)
     return (m >> 15) & 0x3F;
 }
 
-void CSC_PrintMove(CSC_Move m)
-{
-    printf("Start: %d End: %d Promotion: %d Type: %d\n",
-        CSC_GetMoveStart(m),
-        CSC_GetMoveEnd(m),
-        CSC_GetMovePromotion(m),
-        CSC_GetMoveType(m));
-}
-
 struct CSC_MoveList* CSC_MakeMoveList()
 {
     struct CSC_MoveList* l = malloc(sizeof(struct CSC_MoveList));

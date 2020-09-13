@@ -1,7 +1,9 @@
 #include "../include/chessic.h"
 #include "make_undo_tests.h"
 #include "minunit.h"
+#include "string.h"
 #include "stdio.h"
+#include "stdlib.h"
 
 char* MakeUndoTest(const char* fen)
 {
@@ -10,10 +12,15 @@ char* MakeUndoTest(const char* fen)
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
     struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
 
+    char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+
     for (int i = 0; i < l->n; i++)
     {
         CSC_Move m = l->moves[i];
-        CSC_PrintMove(m);
+
+        memset(buf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+        CSC_MoveToUCIString(m, buf, NULL);
+        printf("%s\n", buf);
 
         struct CSC_Board* initial = CSC_CopyBoard(b);
         if (CSC_MakeMove(b, m))
@@ -34,6 +41,7 @@ char* MakeUndoTest(const char* fen)
         CSC_FreeBoard(initial);
     }
 
+    free(buf);
     CSC_FreeMoveList(l);
     CSC_FreeBoard(b);
 

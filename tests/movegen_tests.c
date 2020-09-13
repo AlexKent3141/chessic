@@ -1,7 +1,9 @@
 #include "../include/chessic.h"
 #include "movegen_tests.h"
 #include "minunit.h"
+#include "string.h"
 #include "stdio.h"
+#include "stdlib.h"
 
 char* MoveGenTest(const char* fen, int expected)
 {
@@ -11,14 +13,26 @@ char* MoveGenTest(const char* fen, int expected)
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
     CSC_PrintBoard(b);
     struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
-    CSC_FreeBoard(b);
 
     printf("Num moves generated: %d\n", l->n);
-    for (int i = 0; i < l->n; i++) CSC_PrintMove(l->moves[i]);
+    char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+    for (int i = 0; i < l->n; i++)
+    {
+        memset(buf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+        CSC_MoveToUCIString(l->moves[i], buf, NULL);
+        printf("Move: %s\n", buf);
+
+        /* Convert the string back into a move and check it hasn't changed. */
+        CSC_Move move = CSC_MoveFromUCIString(b, buf);
+        mu_assert("Move parsing failed.", l->moves[i] == move);
+    }
+
+    free(buf);
 
     mu_assert("Wrong number of moves generated.", l->n == expected);
 
     CSC_FreeMoveList(l);
+    CSC_FreeBoard(b);
 
     return NULL;
 }
@@ -46,6 +60,15 @@ char* MoveGenTest4()
 char* MoveGenTest5()
 {
     return MoveGenTest("rnbqkbnr/ppp1pppp/8/2PpP3/8/8/PP1P1PPP/RNBQKBNR w KQkq d6 0 1", 34);
+}
+
+/* In this test I use the starting position and repeatedly move knights until
+   the game should be drawn by repetition. In this situation no moves should
+   be generated. */
+char* MoveGenTestDrawByRepetition1()
+{
+    // TODO
+    return NULL;
 }
 
 char* AllMoveGenTests()

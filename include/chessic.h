@@ -14,6 +14,7 @@
 #define CSC_MAX_MOVES 250
 
 #define CSC_MAX_FEN_LENGTH 100
+#define CSC_MAX_UCI_MOVE_LENGTH 6
 
 #ifdef __cplusplus
 extern "C" {
@@ -188,10 +189,12 @@ EXPORT char CSC_GetMoveStart(CSC_Move);
 EXPORT char CSC_GetMoveEnd(CSC_Move);
 EXPORT enum CSC_PieceType CSC_GetMovePromotion(CSC_Move);
 EXPORT enum CSC_MoveType CSC_GetMoveType(CSC_Move);
-EXPORT void CSC_PrintMove(CSC_Move);
 EXPORT struct CSC_MoveList* CSC_MakeMoveList();
 EXPORT void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
 EXPORT void CSC_FreeMoveList(struct CSC_MoveList*);
+
+EXPORT void CSC_MoveToUCIString(CSC_Move, char*, int*);
+EXPORT CSC_Move CSC_MoveFromUCIString(struct CSC_Board*, char*);
 
 #ifdef __cplusplus
 }
