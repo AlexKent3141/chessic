@@ -23,10 +23,8 @@ char* MakeUndoTest(const char* fen)
         printf("%s\n", buf);
 
         struct CSC_Board* initial = CSC_CopyBoard(b);
-        if (CSC_MakeMove(b, m))
-        {
-            CSC_UndoMove(b);
-        }
+        CSC_MakeMove(b, m);
+        CSC_UndoMove(b);
 
         if (!CSC_BoardEqual(b, initial))
         {

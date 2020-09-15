@@ -44,7 +44,17 @@ char* MoveGenTest1()
 
 char* MoveGenTest2()
 {
-    return MoveGenTest("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 16);
+    /*
+    ........
+    ..p.....
+    ...p....
+    KP.....r
+    .R...p.k
+    ........
+    ....P.P.
+    ........
+    */
+    return MoveGenTest("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 14);
 }
 
 char* MoveGenTest3()
@@ -54,7 +64,17 @@ char* MoveGenTest3()
 
 char* MoveGenTest4()
 {
-    return MoveGenTest("r3kr2/8/8/8/8/8/2p5/R3K2R w KQkq - - 0 1", 24);
+    /*
+    r...kr..
+    ........
+    ........
+    ........
+    ........
+    ........
+    ..p.....
+    R...K..R
+    */
+    return MoveGenTest("r3kr2/8/8/8/8/8/2p5/R3K2R w KQkq - - 0 1", 21);
 }
 
 char* MoveGenTest5()

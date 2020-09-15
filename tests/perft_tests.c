@@ -64,11 +64,9 @@ int Perft(struct CSC_Board* b, int depth)
     for (int i = 0; i < l->n; i++)
     {
         CSC_Move m = l->moves[i];
-        if (CSC_MakeMove(b, m))
-        {
-            nodes += Perft(b, depth-1);
-            CSC_UndoMove(b);
-        }
+        CSC_MakeMove(b, m);
+        nodes += Perft(b, depth-1);
+        CSC_UndoMove(b);
     }
 
     CSC_FreeMoveList(l);

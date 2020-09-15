@@ -1,6 +1,19 @@
 #include "../include/chessic.h"
 
+void AddMove(
+    struct CSC_Board* b,
+    struct CSC_MoveList* l,
+    CSC_Move move)
+{
+    /* Check whether the move is legal and add to the list if it is. */
+    if (CSC_IsLegal(b, move))
+    {
+        CSC_AddMove(l, move);
+    }
+}
+
 void AddPawnMoves(
+    struct CSC_Board* b,
     CSC_Bitboard ends,
     struct CSC_MoveList* l,
     int d,
@@ -10,11 +23,12 @@ void AddPawnMoves(
     while (ends)
     {
         loc = CSC_PopLSB(&ends);
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_NONE, type));
+        AddMove(b, l, CSC_CreateMove(loc-d, loc, CSC_NONE, type));
     }
 }
 
 void AddPromoMoves(
+    struct CSC_Board* b,
     CSC_Bitboard ends,
     struct CSC_MoveList* l,
     int d)
@@ -23,10 +37,10 @@ void AddPromoMoves(
     while (ends)
     {
         loc = CSC_PopLSB(&ends);
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_KNIGHT, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_BISHOP, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_ROOK, CSC_PROMOTION));
-        CSC_AddMove(l, CSC_CreateMove(loc-d, loc, CSC_QUEEN, CSC_PROMOTION));
+        AddMove(b, l, CSC_CreateMove(loc-d, loc, CSC_KNIGHT, CSC_PROMOTION));
+        AddMove(b, l, CSC_CreateMove(loc-d, loc, CSC_BISHOP, CSC_PROMOTION));
+        AddMove(b, l, CSC_CreateMove(loc-d, loc, CSC_ROOK, CSC_PROMOTION));
+        AddMove(b, l, CSC_CreateMove(loc-d, loc, CSC_QUEEN, CSC_PROMOTION));
     }
 }
 
@@ -59,8 +73,8 @@ void FindPawnMoves(
 
         f2 &= ~all;
 
-        AddPawnMoves(f1, l, forward, CSC_NORMAL);
-        AddPawnMoves(f2, l, 2*forward, CSC_TWOSPACE);
+        AddPawnMoves(b, f1, l, forward, CSC_NORMAL);
+        AddPawnMoves(b, f2, l, 2*forward, CSC_TWOSPACE);
     }
 
     // Normal and en-passent captures (without promotions).
@@ -82,11 +96,13 @@ void FindPawnMoves(
             : rightCapPawns >> capLeft;
 
         AddPawnMoves(
+            b,
             leftCaps & enemies,
             l,
             p == CSC_WHITE ? capLeft : -capRight, CSC_NORMAL);
 
         AddPawnMoves(
+            b,
             rightCaps & enemies,
             l,
             p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
@@ -112,7 +128,7 @@ void FindPawnMoves(
 
             while (caps)
             {
-                CSC_AddMove(l, CSC_CreateMove(CSC_PopLSB(&caps), epLoc, CSC_NONE, CSC_ENPASSENT));
+                AddMove(b, l, CSC_CreateMove(CSC_PopLSB(&caps), epLoc, CSC_NONE, CSC_ENPASSENT));
             }
         }
     }
@@ -124,7 +140,7 @@ void FindPawnMoves(
         CSC_Bitboard f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
         f1 &= ~all;
 
-        AddPromoMoves(f1, l, forward);
+        AddPromoMoves(b, f1, l, forward);
 
         if (type & CSC_CAPTURES)
         {
@@ -142,11 +158,13 @@ void FindPawnMoves(
                 : rightCapPawns >> capLeft;
 
             AddPromoMoves(
+                b,
                 leftCaps & enemies,
                 l,
                 p == CSC_WHITE ? capLeft : -capRight);
 
             AddPromoMoves(
+                b,
                 rightCaps & enemies,
                 l,
                 p == CSC_WHITE ? capRight : -capLeft);
@@ -155,17 +173,19 @@ void FindPawnMoves(
 }
 
 void AddMoves(
+    struct CSC_Board* b,
     int loc,
     struct CSC_MoveList* l,
     CSC_Bitboard ends)
 {
     while (ends)
     {
-        CSC_AddMove(l, CSC_CreateMove(loc, CSC_PopLSB(&ends), CSC_NONE, CSC_NORMAL));
+        AddMove(b, l, CSC_CreateMove(loc, CSC_PopLSB(&ends), CSC_NONE, CSC_NORMAL));
     }
 }
 
 void FindStepperMoves(
+    struct CSC_Board* b,
     struct CSC_MoveList* l,
     CSC_Bitboard steppers,
     CSC_Bitboard targets,
@@ -175,7 +195,7 @@ void FindStepperMoves(
     while (steppers)
     {
         loc = CSC_PopLSB(&steppers);
-        AddMoves(loc, l, attacks[loc] & targets);
+        AddMoves(b, loc, l, attacks[loc] & targets);
     }
 }
 
@@ -184,7 +204,12 @@ void FindKnightMoves(
     struct CSC_MoveList* l,
     CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[CSC_KNIGHT][b->player], targets, CSC_KnightAttacks);
+    FindStepperMoves(
+        b,
+        l,
+        b->pieces[CSC_KNIGHT][b->player],
+        targets,
+        CSC_KnightAttacks);
 }
 
 void FindCastlingMoves(
@@ -201,7 +226,7 @@ void FindCastlingMoves(
          && !CSC_IsAttacked(b, startLoc)
          && !CSC_IsAttacked(b, startLoc+1))
         {
-            CSC_AddMove(l, CSC_CreateMove(startLoc, startLoc+2, CSC_NONE, CSC_KINGCASTLE));
+            AddMove(b, l, CSC_CreateMove(startLoc, startLoc+2, CSC_NONE, CSC_KINGCASTLE));
         }
     }
 
@@ -213,7 +238,7 @@ void FindCastlingMoves(
          && !CSC_IsAttacked(b, startLoc)
          && !CSC_IsAttacked(b, startLoc-1))
         {
-            CSC_AddMove(l, CSC_CreateMove(startLoc, startLoc-2, CSC_NONE, CSC_QUEENCASTLE));
+            AddMove(b, l, CSC_CreateMove(startLoc, startLoc-2, CSC_NONE, CSC_QUEENCASTLE));
         }
     }
 }
@@ -223,7 +248,7 @@ void FindKingMoves(
     struct CSC_MoveList* l,
     CSC_Bitboard targets)
 {
-    FindStepperMoves(l, b->pieces[CSC_KING][b->player], targets, CSC_KingAttacks);
+    FindStepperMoves(b, l, b->pieces[CSC_KING][b->player], targets, CSC_KingAttacks);
     FindCastlingMoves(b, l);
 }
 
@@ -245,22 +270,22 @@ void FindOrthMoves(
         ray = rays[p][CSC_NORTH];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTH];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_EAST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_EAST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_SOUTH];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTH];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_WEST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_WEST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
     }
 }
 
@@ -282,22 +307,22 @@ void FindDiagMoves(
         ray = rays[p][CSC_NORTHWEST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHWEST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_NORTHEAST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHEAST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_SOUTHWEST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHWEST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
 
         ray = rays[p][CSC_SOUTHEAST];
         blockers = ray & all;
         if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHEAST];
-        AddMoves(p, l, ray & targets);
+        AddMoves(b, p, l, ray & targets);
     }
 }
 

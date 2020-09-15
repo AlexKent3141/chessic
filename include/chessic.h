@@ -174,11 +174,14 @@ EXPORT void CSC_PrintBoard(struct CSC_Board*);
 /* Check whether the board is in a drawn state. */
 EXPORT bool CSC_IsDrawn(struct CSC_Board*);
 
+/* Check whether the specified move is legal in the given board state. */
+EXPORT bool CSC_IsLegal(struct CSC_Board*, CSC_Move);
+
 /* Generate pseudo-legal moves. */
 EXPORT struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);
 
 /* Attempt to make the move (returns false if it's illegal). */
-EXPORT bool CSC_MakeMove(struct CSC_Board*, CSC_Move);
+EXPORT void CSC_MakeMove(struct CSC_Board*, CSC_Move);
 
 /* Undo the last made move. */
 EXPORT void CSC_UndoMove(struct CSC_Board*);

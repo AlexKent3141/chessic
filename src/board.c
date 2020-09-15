@@ -73,7 +73,11 @@ CSC_Piece RemovePiece(struct CSC_Board* b, int loc, CSC_Hash* hash)
     b->all[p] ^= bit;
     b->pieces[pt][p] ^= bit;
     b->squares[loc] = 0;
-    *hash ^= keys.pieceSquare[b->player][pt][loc];
+
+    if (hash != NULL)
+    {
+        *hash ^= keys.pieceSquare[p][pt][loc];
+    }
 
     return pc;
 }
@@ -87,10 +91,14 @@ void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc, CSC_Hash* hash)
     b->all[p] |= bit;
     b->pieces[pt][p] |= bit;
     b->squares[loc] = pc;
-    *hash ^= keys.pieceSquare[b->player][pt][loc];
+
+    if (hash != NULL)
+    {
+        *hash ^= keys.pieceSquare[p][pt][loc];
+    }
 }
 
-bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
+void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 {
     assert(b != NULL);
     assert(b->bs != NULL);
@@ -192,18 +200,8 @@ bool CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     next->previousState = b->bs;
     b->bs = next;
 
-    // Ensure legality: the king cannot end in check.
-    if (CSC_IsAttacked(b, CSC_LSB(b->pieces[CSC_KING][p])))
-    {
-        b->player = 1 - p;
-        CSC_UndoMove(b);
-        return false;
-    }
-
     b->player = 1 - p;
     next->hash ^= keys.side;
-
-    return true;
 }
 
 void CSC_UndoMove(struct CSC_Board* b)
@@ -223,17 +221,14 @@ void CSC_UndoMove(struct CSC_Board* b)
     int p = b->player;
     int s = CSC_GetMoveStart(m);
     int e = CSC_GetMoveEnd(m);
-    CSC_Hash temp;
 
     // Move the pieces back.
-    CSC_Piece pc = b->squares[e];
-
-    RemovePiece(b, e, &temp);
+    CSC_Piece pc = RemovePiece(b, e, NULL);
 
     enum CSC_MoveType mt = CSC_GetMoveType(m);
     if (mt == CSC_PROMOTION) CSC_SetPieceType(&pc, CSC_PAWN);
 
-    AddPiece(b, s, pc, &temp);
+    AddPiece(b, s, pc, NULL);
 
     if (cap)
     {
@@ -241,7 +236,7 @@ void CSC_UndoMove(struct CSC_Board* b)
         if (mt == CSC_ENPASSENT)
             capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
 
-        AddPiece(b, capLoc, cap, &temp);
+        AddPiece(b, capLoc, cap, NULL);
     }
 
     if (mt & CSC_CASTLE)
@@ -251,14 +246,85 @@ void CSC_UndoMove(struct CSC_Board* b)
         int endFile = mt == CSC_KINGCASTLE ? 7 : 0;
         int rank = p == CSC_WHITE ? 0 : 7;
 
-        CSC_Piece rook = b->squares[8*rank + startFile];
+        CSC_Piece rook = RemovePiece(b, 8*rank + startFile, NULL);
+        AddPiece(b, 8*rank + endFile, rook, NULL);
 
         assert(CSC_GetPieceType(rook) == CSC_ROOK);
         assert(CSC_GetPieceColour(rook) == p);
-
-        RemovePiece(b, 8*rank + startFile, &temp);
-        AddPiece(b, 8*rank + endFile, rook, &temp);
     }
+}
+
+/* There's some duplication of both MakeMove and UndoMove in this function. */
+/* Essentially we need to partially make the move in order to check that it
+   is legal (i.e. the king doesn't end in check). */
+bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
+{
+    assert(b != NULL);
+    assert(b->bs != NULL);
+
+    int p = b->player;
+    int s = CSC_GetMoveStart(m);
+    int e = CSC_GetMoveEnd(m);
+
+    CSC_Piece sp = RemovePiece(b, s, NULL);
+    CSC_Piece cap = b->squares[e];
+
+    enum CSC_MoveType mt = CSC_GetMoveType(m);
+
+    if (cap && mt != CSC_ENPASSENT) RemovePiece(b, e, NULL);
+
+    int capLoc = e;
+    if (mt == CSC_ENPASSENT)
+    {
+        assert(b->bs->enPassentIndex != CSC_BAD_LOC);
+
+        capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
+        cap = RemovePiece(b, capLoc, NULL);
+    }
+    else if (mt & CSC_CASTLE)
+    {
+        // Move the corresponding rook.
+        int startFile = mt == CSC_KINGCASTLE ? 7 : 0;
+        int end_file = mt == CSC_KINGCASTLE ? 5 : 3;
+        int rank = p == CSC_WHITE ? 0 : 7;
+
+        CSC_Piece rook = RemovePiece(b, 8*rank + startFile, NULL);
+        AddPiece(b, 8*rank + end_file, rook, NULL);
+
+        assert(CSC_GetPieceType(rook) == CSC_ROOK);
+        assert(CSC_GetPieceColour(rook) == p);
+    }
+
+    // Add the piece back now that the promotion has been applied.
+    AddPiece(b, e, sp, NULL);
+
+    bool legal = !CSC_IsAttacked(b, CSC_LSB(b->pieces[CSC_KING][p]));
+
+    /* Undo the previously made board changes. */
+    RemovePiece(b, e, NULL);
+
+    AddPiece(b, s, sp, NULL);
+
+    if (cap)
+    {
+        AddPiece(b, capLoc, cap, NULL);
+    }
+
+    if (mt & CSC_CASTLE)
+    {
+        // Move the corresponding rook back.
+        int startFile = mt == CSC_KINGCASTLE ? 5 : 3;
+        int endFile = mt == CSC_KINGCASTLE ? 7 : 0;
+        int rank = p == CSC_WHITE ? 0 : 7;
+
+        CSC_Piece rook = RemovePiece(b, 8*rank + startFile, NULL);
+        AddPiece(b, 8*rank + endFile, rook, NULL);
+
+        assert(CSC_GetPieceType(rook) == CSC_ROOK);
+        assert(CSC_GetPieceColour(rook) == p);
+    }
+
+    return legal;
 }
 
 bool CSC_IsDrawn(struct CSC_Board* b)
