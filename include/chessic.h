@@ -95,33 +95,6 @@ struct CSC_CastlingRights
     bool queenSide;
 };
 
-struct CSC_BoardState
-{
-    /* The move that was applied to reach this state. */
-    CSC_Move lastMove;
-
-    /* The piece that was captured on the last move. */
-    CSC_Piece lastMoveCapture;
-
-    /* The type of piece that moved on the last move. */
-    enum CSC_PieceType lastMovePieceType;
-
-    /* The index of the square where an en-passent capture is possible. */
-    int enPassentIndex;
-
-    /* The number of plies since the last move that reset the 50 move rule. */
-    int plies50Move;
-
-    /* The castling rights for each player. */
-    struct CSC_CastlingRights castlingRights[2];
-
-    /* The current board hash. */
-    CSC_Hash hash;
-
-    /* The previous game state. */
-    struct CSC_BoardState* previousState;
-};
-
 struct CSC_Board
 {
     /* The player to move. */
@@ -129,9 +102,6 @@ struct CSC_Board
 
     /* The number of full turns so far. */
     int turnNumber;
-
-    /* The state which varies per move. */
-    struct CSC_BoardState* bs;
 
     /* The pieces on each square. */
     CSC_Piece squares[CSC_SQUARE_NB];
@@ -141,6 +111,9 @@ struct CSC_Board
 
     /* The pieces of each type for each player. */
     CSC_Bitboard pieces[7][2];
+
+    /* Opaque pointer to a stack containing the state that varies per move. */
+    void* states;
 };
 
 /* Bitboard constants. */
@@ -170,6 +143,13 @@ EXPORT struct CSC_Board* CSC_CopyBoard(struct CSC_Board*);
 EXPORT bool CSC_BoardEqual(struct CSC_Board*, struct CSC_Board*);
 EXPORT void CSC_FreeBoard(struct CSC_Board*);
 EXPORT void CSC_PrintBoard(struct CSC_Board*);
+EXPORT CSC_Hash CSC_GetHash(struct CSC_Board*);
+EXPORT int CSC_GetEnPassentIndex(struct CSC_Board*);
+EXPORT int CSC_GetPlies50Move(struct CSC_Board*);
+
+struct CSC_CastlingRights CSC_GetCastlingRights(
+    struct CSC_Board*,
+    enum CSC_Colour);
 
 /* Check whether the board is in a drawn state. */
 EXPORT bool CSC_IsDrawn(struct CSC_Board*);

@@ -1,4 +1,5 @@
 #include "../include/chessic.h"
+#include "board_state.h"
 
 void AddMove(
     struct CSC_Board* b,
@@ -107,7 +108,8 @@ void FindPawnMoves(
             l,
             p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
 
-        int epLoc = b->bs->enPassentIndex;
+        struct BoardState* state = Top((struct StateStack*)b->states);
+        int epLoc = state->enPassentIndex;
         if (epLoc != CSC_BAD_LOC)
         {
             CSC_Bitboard ep = (CSC_Bitboard)1 << epLoc;
@@ -219,7 +221,8 @@ void FindCastlingMoves(
     int p = b->player;
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     int startLoc = p == CSC_WHITE ? 4 : 60;
-    if (b->bs->castlingRights[p].kingSide)
+    struct BoardState* state = Top((struct StateStack*)b->states);
+    if (state->castlingRights[p].kingSide)
     {
         if (!CSC_Test(all, startLoc+1)
          && !CSC_Test(all, startLoc+2)
@@ -230,7 +233,7 @@ void FindCastlingMoves(
         }
     }
 
-    if (b->bs->castlingRights[p].queenSide)
+    if (state->castlingRights[p].queenSide)
     {
         if (!CSC_Test(all, startLoc-1)
          && !CSC_Test(all, startLoc-2)

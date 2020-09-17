@@ -7,6 +7,7 @@ TEST=test
 src_chessic= \
 	src/bits.c \
 	src/board.c \
+	src/board_state.c \
 	src/move.c \
 	src/movegen.c \
 	src/parser.c \

@@ -1,4 +1,5 @@
 #include "board.h"
+#include "board_state.h"
 #include "zobrist.h"
 #include "assert.h"
 #include "ctype.h"
@@ -12,13 +13,7 @@ struct CSC_Board* CreateBoardEmpty()
 
     b->player = CSC_WHITE;
     b->turnNumber = 0;
-
-    struct CSC_BoardState* bs = malloc(sizeof(struct CSC_BoardState));
-    memset(bs, 0, sizeof(struct CSC_BoardState));
-    bs->enPassentIndex = CSC_BAD_LOC;
-    bs->previousState = NULL;
-    bs->hash = 0;
-    b->bs = bs;
+    b->states = CreateStack();
 
     memset(b->squares, 0, CSC_SQUARE_NB*sizeof(CSC_Piece));
 
@@ -35,9 +30,7 @@ struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
     memcpy(copy, b, sizeof(struct CSC_Board));
 
     /* Perform a deep copy of the board state. */
-    /* TODO: Should we copy all previous board states here? */
-    copy->bs = malloc(sizeof(struct CSC_BoardState));
-    memcpy(copy->bs, b->bs, sizeof(struct CSC_BoardState));
+    copy->states = CopyStack((struct StateStack*)b->states);
 
     return copy;
 }
@@ -45,7 +38,7 @@ struct CSC_Board* CSC_CopyBoard(struct CSC_Board* b)
 bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
 {
     /* First check the board hash - normally this is sufficient. */
-    if (b1->bs->hash != b2->bs->hash)
+    if (CSC_GetHash(b1) != CSC_GetHash(b2))
         return false;
 
     /* The boards hash to the same value, need to check the details. */
@@ -61,6 +54,32 @@ bool CSC_BoardEqual(struct CSC_Board* b1, struct CSC_Board* b2)
     equal &= (b1->all[CSC_BLACK] == b2->all[CSC_BLACK]);
 
     return equal;
+}
+
+CSC_Hash CSC_GetHash(struct CSC_Board* b)
+{
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    return bs->hash;
+}
+
+int CSC_GetEnPassentIndex(struct CSC_Board* b)
+{
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    return bs->enPassentIndex;
+}
+
+int CSC_GetPlies50Move(struct CSC_Board* b)
+{
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    return bs->plies50Move;
+}
+
+struct CSC_CastlingRights CSC_GetCastlingRights(
+    struct CSC_Board* b,
+    enum CSC_Colour p)
+{
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    return bs->castlingRights[p];
 }
 
 CSC_Piece RemovePiece(struct CSC_Board* b, int loc, CSC_Hash* hash)
@@ -101,13 +120,14 @@ void AddPiece(struct CSC_Board* b, int loc, CSC_Piece pc, CSC_Hash* hash)
 void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 {
     assert(b != NULL);
-    assert(b->bs != NULL);
+    assert(b->states != NULL);
 
     int p = b->player;
     int s = CSC_GetMoveStart(m);
     int e = CSC_GetMoveEnd(m);
 
-    CSC_Hash hash = b->bs->hash;
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    CSC_Hash hash = bs->hash;
 
     CSC_Piece sp = RemovePiece(b, s, &hash);
     CSC_Piece cap = b->squares[e];
@@ -119,7 +139,7 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 
     if (mt == CSC_ENPASSENT)
     {
-        assert(b->bs->enPassentIndex != CSC_BAD_LOC);
+        assert(bs->enPassentIndex != CSC_BAD_LOC);
 
         int capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
         cap = b->squares[capLoc];
@@ -153,7 +173,7 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     // Add the piece back now that the promotion has been applied.
     AddPiece(b, e, sp, &hash);
 
-    struct CSC_CastlingRights ourCastlingRights = b->bs->castlingRights[p];
+    struct CSC_CastlingRights ourCastlingRights = bs->castlingRights[p];
     if (pt == CSC_KING)
     {
         ourCastlingRights.kingSide = false;
@@ -167,7 +187,7 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
         ourCastlingRights.queenSide &= (s != queenRook);
     }
 
-    struct CSC_CastlingRights theirCastlingRights = b->bs->castlingRights[1-p];
+    struct CSC_CastlingRights theirCastlingRights = bs->castlingRights[1-p];
     if (cap && CSC_GetPieceType(cap) == CSC_ROOK)
     {
         int enemyKingRook = p == CSC_WHITE ? 63 : 7;
@@ -183,22 +203,18 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
         hash ^= keys.enpassentFile[e % CSC_FILE_NB];
     }
 
-    // Clone the previous board state.
-    struct CSC_BoardState* next = malloc(sizeof(struct CSC_BoardState));
-    memcpy(next, b->bs, sizeof(struct CSC_BoardState));
+    // Fill in the next board state.
+    struct BoardState* next = Push((struct StateStack*)b->states);
     next->lastMove = m;
     next->lastMoveCapture = cap;
     next->lastMovePieceType = pt;
     next->enPassentIndex = ep;
+    next->plies50Move = bs->plies50Move + 1;
     next->castlingRights[p] = ourCastlingRights;
     next->castlingRights[1-p] = theirCastlingRights;
     next->hash = hash;
 
-    ++next->plies50Move;
     if (cap || pt == CSC_PAWN) next->plies50Move = 0;
-
-    next->previousState = b->bs;
-    b->bs = next;
 
     b->player = 1 - p;
     next->hash ^= keys.side;
@@ -207,14 +223,12 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
 void CSC_UndoMove(struct CSC_Board* b)
 {
     assert(b != NULL);
-    assert(b->bs != NULL);
+    assert(b->states != NULL);
 
     // Extract the required info from the state and revert to previous.
-    struct CSC_BoardState* old = b->bs;
+    struct BoardState* old = Pop((struct StateStack*)b->states);
     CSC_Move m = old->lastMove;
     int cap = old->lastMoveCapture;
-    b->bs = old->previousState;
-    free(old);
 
     b->player = 1 - b->player;
 
@@ -260,12 +274,13 @@ void CSC_UndoMove(struct CSC_Board* b)
 bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
 {
     assert(b != NULL);
-    assert(b->bs != NULL);
+    assert(b->states != NULL);
 
     int p = b->player;
     int s = CSC_GetMoveStart(m);
     int e = CSC_GetMoveEnd(m);
 
+    struct BoardState* bs = Top((struct StateStack*)b->states);
     CSC_Piece sp = RemovePiece(b, s, NULL);
     CSC_Piece cap = b->squares[e];
 
@@ -276,7 +291,7 @@ bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
     int capLoc = e;
     if (mt == CSC_ENPASSENT)
     {
-        assert(b->bs->enPassentIndex != CSC_BAD_LOC);
+        assert(bs->enPassentIndex != CSC_BAD_LOC);
 
         capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
         cap = RemovePiece(b, capLoc, NULL);
@@ -329,21 +344,22 @@ bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
 
 bool CSC_IsDrawn(struct CSC_Board* b)
 {
-    if (b->bs->plies50Move >= 50) return true;
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    if (bs->plies50Move >= 50) return true;
 
     /* Examine hashes to determine whether there has been a draw by repetition. */
     /* When checking these we can stop when we find the first irreversible move
        i.e. a pawn move or a capture. */
-    CSC_Hash latestHash = b->bs->hash;
+    CSC_Hash latestHash = bs->hash;
     int hashCount = 1;
-    struct CSC_BoardState* prev = b->bs->previousState;
-    while (prev != NULL
-        && !prev->lastMoveCapture
-        && prev->lastMovePieceType != CSC_PAWN
+    bs = bs->previousState;
+    while (bs != NULL
+        && !bs->lastMoveCapture
+        && bs->lastMovePieceType != CSC_PAWN
         && hashCount < 3)
     {
-        hashCount += prev->hash == latestHash;
-        prev = prev->previousState;
+        hashCount += bs->hash == latestHash;
+        bs = bs->previousState;
     }
 
     return hashCount >= 3;
@@ -353,15 +369,11 @@ void CSC_FreeBoard(struct CSC_Board* b)
 {
     if (b)
     {
-        struct CSC_BoardState* bs = b->bs;
-        while (bs != NULL)
+        if (b->states != NULL)
         {
-            struct CSC_BoardState* prev = bs->previousState;
-            free(bs);
-            bs = prev;
+            FreeStack((struct StateStack*)b->states);
+            b->states = NULL;
         }
-
-        b->bs = NULL;
 
         free(b);
         b = NULL;

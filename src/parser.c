@@ -1,5 +1,6 @@
 #include "../include/chessic.h"
 #include "board.h"
+#include "board_state.h"
 #include "zobrist.h"
 #include "assert.h"
 #include "ctype.h"
@@ -41,7 +42,9 @@ void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
     b->squares[loc] = CSC_CreatePiece(col, type);
-    b->bs->hash ^= keys.pieceSquare[col][type][loc];
+
+    struct BoardState* bs = Top((struct StateStack*)b->states);
+    bs->hash ^= keys.pieceSquare[col][type][loc];
 }
 
 char FENFromPiece(int col, int type)
@@ -81,7 +84,7 @@ int LocFromFEN(const char* loc)
 struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 {
     struct CSC_Board* b = CreateBoardEmpty();
-    struct CSC_BoardState* bs = b->bs;
+    struct BoardState* bs = Top((struct StateStack*)b->states);
 
     char* fenDup = malloc(strlen(fen)*sizeof(char) + 1);
     strcpy(fenDup, fen);
@@ -165,7 +168,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 
 void CSC_FENFromBoard(struct CSC_Board* b, char* buf, int* len)
 {
-    struct CSC_BoardState* bs = b->bs;
+    struct BoardState* bs = Top((struct StateStack*)b->states);
 
     // Set the piece definitions.
     int i = 0, e;
