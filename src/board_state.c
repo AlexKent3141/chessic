@@ -42,6 +42,8 @@ struct StateStack* CopyStack(struct StateStack* other)
     copy->dataSize = other->dataSize;
     copy->head = other->head;
 
+    /* Free the allocated data and re-allocate the correct amount. */
+    free(copy->data);
     copy->data = malloc(copy->dataSize*sizeof(struct BoardState));
     memcpy(copy->data, other->data, copy->dataSize*sizeof(struct BoardState));
 
