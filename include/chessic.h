@@ -158,7 +158,7 @@ EXPORT bool CSC_IsDrawn(struct CSC_Board*);
 EXPORT bool CSC_IsLegal(struct CSC_Board*, CSC_Move);
 
 /* Generate pseudo-legal moves. */
-EXPORT struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveType);
+EXPORT struct CSC_MoveList* CSC_GetMoves(struct CSC_Board*, enum CSC_MoveGenType);
 
 /* Attempt to make the move (returns false if it's illegal). */
 EXPORT void CSC_MakeMove(struct CSC_Board*, CSC_Move);

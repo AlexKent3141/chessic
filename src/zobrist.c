@@ -1,6 +1,8 @@
 #include "../include/chessic.h"
 #include "zobrist.h"
 
+struct ZobristKeys keys;
+
 uint64_t xorshift128plus(uint64_t s[2])
 {
     uint64_t x = s[0];

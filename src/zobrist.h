@@ -17,6 +17,6 @@ struct ZobristKeys
     uint64_t side;
 };
 
-struct ZobristKeys keys;
+extern struct ZobristKeys keys;
 
 #endif /* __CHESSIC_ZOBRIST_H__ */

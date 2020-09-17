@@ -48,7 +48,7 @@ void AddPromoMoves(
 void FindPawnMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
-    enum CSC_MoveType type)
+    enum CSC_MoveGenType type)
 {
     int p = b->player;
     CSC_Bitboard enemies = b->all[1-p];
@@ -331,7 +331,7 @@ void FindDiagMoves(
 
 struct CSC_MoveList* CSC_GetMoves(
     struct CSC_Board* b,
-    enum CSC_MoveType type)
+    enum CSC_MoveGenType type)
 {
     struct CSC_MoveList* l = CSC_MakeMoveList();
 
