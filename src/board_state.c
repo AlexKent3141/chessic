@@ -38,13 +38,11 @@ void FreeStack(struct StateStack* stack)
 
 struct StateStack* CopyStack(struct StateStack* other)
 {
-    struct StateStack* copy = CreateStack();
+    struct StateStack* copy = malloc(sizeof(struct StateStack));
+    copy->data = malloc(other->dataSize*sizeof(struct BoardState));
     copy->dataSize = other->dataSize;
     copy->head = other->head;
 
-    /* Free the allocated data and re-allocate the correct amount. */
-    free(copy->data);
-    copy->data = malloc(copy->dataSize*sizeof(struct BoardState));
     memcpy(copy->data, other->data, copy->dataSize*sizeof(struct BoardState));
 
     /* Sort out pointers: currently they will point to the original's elements. */
@@ -56,12 +54,34 @@ struct StateStack* CopyStack(struct StateStack* other)
     return copy;
 }
 
+/* Push a new board state to the stack and return a pointer to the new element. */
+/* If the current maximum stack size has been reached then the stack gets
+   re-allocated with a larger buffer. When this happens any pointers to the
+   previous elements become invalid - so they should not be accessed after
+   this function is called. */
 struct BoardState* Push(struct StateStack* stack)
 {
-    /* TODO: This is where we might need to re-allocate the stack. */
-    assert(stack->head < stack->dataSize - 1);
-    ++stack->head;
-    stack->data[stack->head].previousState = &stack->data[stack->head - 1];
+    if (stack->head < stack->dataSize - 1)
+    {
+        ++stack->head;
+        stack->data[stack->head].previousState = &stack->data[stack->head - 1];
+    }
+    else
+    {
+        struct BoardState* origData = stack->data;
+        size_t origSize = stack->dataSize;
+        stack->dataSize <<= 1;
+        stack->data = malloc(stack->dataSize*sizeof(struct BoardState));
+        memcpy(stack->data, origData, origSize*sizeof(struct BoardState));
+        free(origData);
+
+        ++stack->head;
+
+        for (size_t i = 1; i <= stack->head; i++)
+        {
+            stack->data[i].previousState = &stack->data[i-1];
+        }
+    }
 
     return &stack->data[stack->head];
 }

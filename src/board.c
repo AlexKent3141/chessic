@@ -204,12 +204,14 @@ void CSC_MakeMove(struct CSC_Board* b, CSC_Move m)
     }
 
     // Fill in the next board state.
+    int plies50Move = bs->plies50Move + 1;
+
     struct BoardState* next = Push((struct StateStack*)b->states);
     next->lastMove = m;
     next->lastMoveCapture = cap;
     next->lastMovePieceType = pt;
     next->enPassentIndex = ep;
-    next->plies50Move = bs->plies50Move + 1;
+    next->plies50Move = plies50Move;
     next->castlingRights[p] = ourCastlingRights;
     next->castlingRights[1-p] = theirCastlingRights;
     next->hash = hash;
