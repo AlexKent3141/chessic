@@ -6,4 +6,4 @@
                                if (message) return message; } while (0)
 extern int tests_run;
 
-#endif // __MIN_UNIT_H__
+#endif /* __MIN_UNIT_H__ */

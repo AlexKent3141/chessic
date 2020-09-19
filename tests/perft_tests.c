@@ -6,6 +6,9 @@
 #include "string.h"
 #include "time.h"
 
+#define MAX_TEST_CASES 1000
+#define MAX_LINE_LENGTH 255
+
 struct TestCase
 {
     char fen[CSC_MAX_FEN_LENGTH];
@@ -16,29 +19,30 @@ struct TestCase
 int numTestCases, currentTest;
 struct TestCase* testCases;
 
-// Load the test cases from the epd file in the test directory.
+/* Load the test cases from the epd file in the test directory. */
 void LoadTestCases()
 {
-    const int MAX_TEST_CASES = 1000;
+    char line[MAX_LINE_LENGTH];
+    char fen[CSC_MAX_FEN_LENGTH];
+    FILE* f;
+    char* token;
+    struct TestCase test;
+
     testCases = malloc(MAX_TEST_CASES*sizeof(struct TestCase));
     numTestCases = 0;
 
-    const size_t MAX_LINE_LENGTH = 255;
-    char line[MAX_LINE_LENGTH];
-    char fen[CSC_MAX_FEN_LENGTH];
-
-    FILE* f = fopen("tests/perftsuite.epd", "r");
+    f = fopen("tests/perftsuite.epd", "r");
     if (f != NULL)
     {
         while (fgets(line, MAX_LINE_LENGTH, f))
         {
-            char* token = strtok(line, ";");
+            token = strtok(line, ";");
             memset(fen, 0, CSC_MAX_FEN_LENGTH*sizeof(char));
             memcpy(fen, token, strlen(token)*sizeof(char));
 
             while ((token = strtok(NULL, ";")) != NULL)
             {
-                struct TestCase test = { 0 };
+                memset(test.fen, 0, CSC_MAX_FEN_LENGTH*sizeof(char));
                 test.depth = token[1] - '0';
                 test.expected = atoi(&token[3]);
                 memcpy(test.fen, fen, CSC_MAX_FEN_LENGTH*sizeof(char));
@@ -57,13 +61,16 @@ void LoadTestCases()
 
 int Perft(struct CSC_Board* b, int depth)
 {
+    struct CSC_MoveList* l;
+    CSC_Move m;
+    int nodes = 0, i;
+
     if (depth == 0) return 1;
 
-    int nodes = 0;
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
-    for (int i = 0; i < l->n; i++)
+    l = CSC_GetMoves(b, CSC_ALL);
+    for (i = 0; i < l->n; i++)
     {
-        CSC_Move m = l->moves[i];
+        m = l->moves[i];
         CSC_MakeMove(b, m);
         nodes += Perft(b, depth-1);
         CSC_UndoMove(b);
@@ -77,13 +84,16 @@ int Perft(struct CSC_Board* b, int depth)
 char* PerftTest()
 {
     struct TestCase test = testCases[currentTest];
+    struct CSC_Board* b;
+    int nodes;
+
     printf("Position %s, Depth %d, Expected %d\n",
         test.fen,
         test.depth,
         test.expected);
 
-    struct CSC_Board* b = CSC_BoardFromFEN(test.fen);
-    int nodes = Perft(b, test.depth);
+    b = CSC_BoardFromFEN(test.fen);
+    nodes = Perft(b, test.depth);
     printf("Got: %d\n", nodes);
     mu_assert("Incorrect perft value", nodes == test.expected);
     CSC_FreeBoard(b);
@@ -92,9 +102,11 @@ char* PerftTest()
 
 char* AllPerftTests()
 {
+    time_t start;
+
     LoadTestCases();
 
-    time_t start = time(NULL);
+    start = time(NULL);
     for (currentTest = 0; currentTest < numTestCases; currentTest++)
     {
         mu_run_test(PerftTest);

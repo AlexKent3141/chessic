@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -Wpedantic -O3 -fPIC -fvisibility=hidden
+CFLAGS=-Wall -Wextra -Wpedantic -ansi -O3 -fPIC -fvisibility=hidden
 
 SLIB=libchessic.so
 TEST=test

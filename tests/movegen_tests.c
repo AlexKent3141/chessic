@@ -7,23 +7,27 @@
 
 char* MoveGenTest(const char* fen, int expected)
 {
+    struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    CSC_Move move;
+    char* buf;
+    int i;
+
     printf("FEN: %s\n", fen);
     printf("Expected: %d\n", expected);
 
-    struct CSC_Board* b = CSC_BoardFromFEN(fen);
     CSC_PrintBoard(b);
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
 
     printf("Num moves generated: %d\n", l->n);
-    char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
-    for (int i = 0; i < l->n; i++)
+    buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+    for (i = 0; i < l->n; i++)
     {
         memset(buf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
         CSC_MoveToUCIString(l->moves[i], buf, NULL);
         printf("Move: %s\n", buf);
 
         /* Convert the string back into a move and check it hasn't changed. */
-        CSC_Move move = CSC_MoveFromUCIString(b, buf);
+        move = CSC_MoveFromUCIString(b, buf);
         mu_assert("Move parsing failed.", l->moves[i] == move);
     }
 
@@ -88,27 +92,31 @@ char* MoveGenTestDrawByRepetition1()
 {
     struct CSC_Board* b = CSC_BoardFromFEN(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    struct CSC_MoveList* l;
+    CSC_Move whiteKnightForward, blackKnightForward;
+    CSC_Move whiteKnightBack, blackKnightBack;
+    int turn;
 
-    for (int turn = 0; turn < 3; turn++)
+    for (turn = 0; turn < 3; turn++)
     {
-        CSC_Move whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
+        whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
         CSC_MakeMove(b, whiteKnightForward);
 
-        CSC_Move blackKnightForward = CSC_MoveFromUCIString(b, "g8f6");
+        blackKnightForward = CSC_MoveFromUCIString(b, "g8f6");
         CSC_MakeMove(b, blackKnightForward);
 
-        CSC_Move whiteKnightBack = CSC_MoveFromUCIString(b, "f3g1");
+        whiteKnightBack = CSC_MoveFromUCIString(b, "f3g1");
         CSC_MakeMove(b, whiteKnightBack);
 
-        CSC_Move blackKnightBack = CSC_MoveFromUCIString(b, "f6g8");
+        blackKnightBack = CSC_MoveFromUCIString(b, "f6g8");
         CSC_MakeMove(b, blackKnightBack);
     }
 
     /* Now when the white knight moves out again the game should be drawn. */
-    CSC_Move whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
+    whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
     CSC_MakeMove(b, whiteKnightForward);
 
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    l = CSC_GetMoves(b, CSC_ALL);
     mu_assert("No moves should be available because the game is drawn", l->n == 0);
 
     CSC_FreeMoveList(l);

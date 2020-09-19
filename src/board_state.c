@@ -7,12 +7,14 @@
 struct StateStack* CreateStack()
 {
     struct StateStack* stack = malloc(sizeof(struct StateStack));
+    struct BoardState* bs;
+
     stack->data = malloc(INITIAL_STACK_SIZE*sizeof(struct BoardState));
     stack->dataSize = INITIAL_STACK_SIZE;
     stack->head = 0;
 
     /* Initialise a default board state. */
-    struct BoardState* bs = &stack->data[0];
+    bs = &stack->data[0];
     memset(bs, 0, sizeof(struct BoardState));
     bs->enPassentIndex = CSC_BAD_LOC;
     bs->previousState = NULL;
@@ -39,6 +41,8 @@ void FreeStack(struct StateStack* stack)
 struct StateStack* CopyStack(struct StateStack* other)
 {
     struct StateStack* copy = malloc(sizeof(struct StateStack));
+    size_t i;
+
     copy->data = malloc(other->dataSize*sizeof(struct BoardState));
     copy->dataSize = other->dataSize;
     copy->head = other->head;
@@ -46,7 +50,7 @@ struct StateStack* CopyStack(struct StateStack* other)
     memcpy(copy->data, other->data, copy->dataSize*sizeof(struct BoardState));
 
     /* Sort out pointers: currently they will point to the original's elements. */
-    for (size_t i = 1; i <= copy->head; i++)
+    for (i = 1; i <= copy->head; i++)
     {
         copy->data[i].previousState = &copy->data[i-1];
     }
@@ -61,6 +65,9 @@ struct StateStack* CopyStack(struct StateStack* other)
    this function is called. */
 struct BoardState* Push(struct StateStack* stack)
 {
+    struct BoardState* origData;
+    size_t origSize, i;
+
     if (stack->head < stack->dataSize - 1)
     {
         ++stack->head;
@@ -68,8 +75,8 @@ struct BoardState* Push(struct StateStack* stack)
     }
     else
     {
-        struct BoardState* origData = stack->data;
-        size_t origSize = stack->dataSize;
+        origData = stack->data;
+        origSize = stack->dataSize;
         stack->dataSize <<= 1;
         stack->data = malloc(stack->dataSize*sizeof(struct BoardState));
         memcpy(stack->data, origData, origSize*sizeof(struct BoardState));
@@ -77,7 +84,7 @@ struct BoardState* Push(struct StateStack* stack)
 
         ++stack->head;
 
-        for (size_t i = 1; i <= stack->head; i++)
+        for (i = 1; i <= stack->head; i++)
         {
             stack->data[i].previousState = &stack->data[i-1];
         }

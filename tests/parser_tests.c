@@ -7,11 +7,13 @@
 
 char* FENTest(const char* fen)
 {
-    printf("FEN: %s\n", fen);
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    char* buf;
+
+    printf("FEN: %s\n", fen);
     CSC_PrintBoard(b);
 
-    char* buf = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    buf = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
     CSC_FENFromBoard(b, buf, NULL);
     CSC_FreeBoard(b);
     printf("Output: %s\n", buf);

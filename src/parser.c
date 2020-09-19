@@ -37,13 +37,13 @@ void SetPieceFromFEN(struct CSC_Board* b, int loc, char c)
 {
     int col = isupper(c) ? CSC_WHITE : CSC_BLACK;
     enum CSC_PieceType type = PieceTypeFromFEN(tolower(c));
+    struct BoardState* bs = Top((struct StateStack*)b->states);
 
     CSC_Bitboard bit = (CSC_Bitboard)1 << loc;
     b->all[col] |= bit;
     b->pieces[type][col] |= bit;
     b->squares[loc] = CSC_CreatePiece(col, type);
 
-    struct BoardState* bs = Top((struct StateStack*)b->states);
     bs->hash ^= keys.pieceSquare[col][type][loc];
 }
 
@@ -85,15 +85,16 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 {
     struct CSC_Board* b = CreateBoardEmpty();
     struct BoardState* bs = Top((struct StateStack*)b->states);
-
+    int f = 0; int r = 7;
+    size_t i;
+    char c;
+    char* token;
     char* fenDup = malloc(strlen(fen)*sizeof(char) + 1);
     strcpy(fenDup, fen);
 
-    // Get the piece definitions.
-    char c;
-    char* token = strtok(fenDup, " ");
-    int f = 0; int r = 7;
-    for (size_t i = 0; i < strlen(token); i++)
+    /* Get the piece definitions. */
+    token = strtok(fenDup, " ");
+    for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
         if (isalpha(c))
@@ -112,15 +113,15 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
         }
     }
 
-    // Get the colour to move.
+    /* Get the colour to move. */
     token = strtok(NULL, " ");
     b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
     if (b->player == CSC_WHITE) bs->hash ^= keys.side;
 
-    // Get the castling rights.
+    /* Get the castling rights. */
     token = strtok(NULL, " ");
-    for (size_t i = 0; i < strlen(token); i++)
+    for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
         if (c == 'K')
@@ -145,7 +146,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
         }
     }
 
-    // Get the en-passent square.
+    /* Get the en-passent square. */
     token = strtok(NULL, " ");
     if (token[0] != '-')
     {
@@ -153,11 +154,11 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
         bs->hash ^= keys.enpassentFile[bs->enPassentIndex % CSC_FILE_NB];
     }
 
-    // Get the half-move count.
+    /* Get the half-move count. */
     token = strtok(NULL, " ");
     bs->plies50Move = atoi(token);
 
-    // Get the full-move count.
+    /* Get the full-move count. */
     token = strtok(NULL, " ");
     b->turnNumber = atoi(token);
 
@@ -170,13 +171,17 @@ void CSC_FENFromBoard(struct CSC_Board* b, char* buf, int* len)
 {
     struct BoardState* bs = Top((struct StateStack*)b->states);
 
-    // Set the piece definitions.
-    int i = 0, e;
-    int col, type;
-    for (int r = 7; r >= 0; r--)
+    int i = 0, e, r, f;
+    int col, type, start;
+    const int MaxTurnLength = 10;
+    char* numBuf = malloc(MaxTurnLength*sizeof(char));
+    size_t j;
+
+    /* Set the piece definitions. */
+    for (r = 7; r >= 0; r--)
     {
         e = 0;
-        for (int f = 0; f < 8; f++)
+        for (f = 0; f < 8; f++)
         {
             LocDetails(b, 8*r+f, &col, &type);
             if (type != CSC_NONE)
@@ -199,7 +204,7 @@ void CSC_FENFromBoard(struct CSC_Board* b, char* buf, int* len)
     buf[i++] = b->player == CSC_WHITE ? 'w' : 'b';
 
     buf[i++] = ' ';
-    int start = i;
+    start = i;
     if (bs->castlingRights[CSC_WHITE].kingSide) buf[i++] = 'K';
     if (bs->castlingRights[CSC_WHITE].queenSide) buf[i++] = 'Q';
     if (bs->castlingRights[CSC_BLACK].kingSide) buf[i++] = 'k';
@@ -219,19 +224,17 @@ void CSC_FENFromBoard(struct CSC_Board* b, char* buf, int* len)
 
     buf[i++] = ' ';
 
-    // Serialise the half-move count.
-    const int MaxTurnLength = 10;
-    char* numBuf = malloc(MaxTurnLength*sizeof(char));
+    /* Serialise the half-move count. */
     memset(numBuf, 0, MaxTurnLength*sizeof(char));
-    snprintf(numBuf, 10, "%d", bs->plies50Move);
-    for (size_t j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
+    sprintf(numBuf, "%d", bs->plies50Move);
+    for (j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
 
     buf[i++] = ' ';
 
-    // Serialise the number of full turns.
+    /* Serialise the number of full turns. */
     memset(numBuf, 0, MaxTurnLength*sizeof(char));
-    snprintf(numBuf, 10, "%d", b->turnNumber);
-    for (size_t j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
+    sprintf(numBuf, "%d", b->turnNumber);
+    for (j = 0; j < strlen(numBuf); j++) buf[i++] = numBuf[j];
 
     buf[i] = '\0';
 
@@ -244,12 +247,12 @@ void CSC_MoveToUCIString(CSC_Move move, char* buf, int* len)
 {
     char start = CSC_GetMoveStart(move);
     char end = CSC_GetMoveEnd(move);
+    int numChars = 4;
     buf[0] = (start % CSC_FILE_NB) + 'a';
     buf[1] = (start / CSC_RANK_NB) + '1';
     buf[2] = (end % CSC_FILE_NB) + 'a';
     buf[3] = (end / CSC_RANK_NB) + '1';
 
-    int numChars = 4;
     if (CSC_GetMoveType(move) & CSC_PROMOTION)
     {
         /* Specified black here so we get a lowercase character. */

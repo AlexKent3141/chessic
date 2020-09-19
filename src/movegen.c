@@ -54,21 +54,25 @@ void FindPawnMoves(
     CSC_Bitboard enemies = b->all[1-p];
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     CSC_Bitboard promo = p == CSC_WHITE ? CSC_Ranks[6] : CSC_Ranks[1];
+    CSC_Bitboard pawns, f1, f2;
+    CSC_Bitboard leftCapPawns, rightCapPawns, leftCaps, rightCaps;
+    CSC_Bitboard ep, caps;
     int forward = p == CSC_WHITE ? CSC_FILE_NB : -CSC_FILE_NB;
     int capLeft = CSC_FILE_NB-1;
     int capRight = CSC_FILE_NB+1;
+    int epLoc;
 
-    // Single and double pawn pushes (without promotions).
+    /* Single and double pawn pushes (without promotions). */
     if (type & CSC_QUIETS)
     {
-        CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & ~promo;
-        CSC_Bitboard f1 = p == CSC_WHITE
+        pawns = b->pieces[CSC_PAWN][p] & ~promo;
+        f1 = p == CSC_WHITE
             ? pawns << CSC_FILE_NB
             : pawns >> CSC_FILE_NB;
 
         f1 &= ~all;
 
-        CSC_Bitboard f2 = p == CSC_WHITE
+        f2 = p == CSC_WHITE
             ? (f1 & CSC_Ranks[2]) << CSC_FILE_NB
             : (f1 & CSC_Ranks[5]) >> CSC_FILE_NB;
 
@@ -78,21 +82,21 @@ void FindPawnMoves(
         AddPawnMoves(b, f2, l, 2*forward, CSC_TWOSPACE);
     }
 
-    // Normal and en-passent captures (without promotions).
+    /* Normal and en-passent captures (without promotions). */
     if (type & CSC_CAPTURES)
     {
-        CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & ~promo;
+        pawns = b->pieces[CSC_PAWN][p] & ~promo;
 
-        // Ensure that no captures wrap around the struct CSC_Board.
-        CSC_Bitboard leftCapPawns = pawns & ~CSC_Files[0];
-        CSC_Bitboard rightCapPawns = pawns & ~CSC_Files[7];
+        /* Ensure that no captures wrap around the struct CSC_Board. */
+        leftCapPawns = pawns & ~CSC_Files[0];
+        rightCapPawns = pawns & ~CSC_Files[7];
 
-        // Defining left and right from white's perspective...
-        CSC_Bitboard leftCaps = p == CSC_WHITE
+        /* Defining left and right from white's perspective... */
+        leftCaps = p == CSC_WHITE
             ? leftCapPawns << capLeft
             : leftCapPawns >> capRight;
 
-        CSC_Bitboard rightCaps = p == CSC_WHITE
+        rightCaps = p == CSC_WHITE
             ? rightCapPawns << capRight
             : rightCapPawns >> capLeft;
 
@@ -108,14 +112,13 @@ void FindPawnMoves(
             l,
             p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
 
-        struct BoardState* state = Top((struct StateStack*)b->states);
-        int epLoc = state->enPassentIndex;
+        epLoc = CSC_GetEnPassentIndex(b);
         if (epLoc != CSC_BAD_LOC)
         {
-            CSC_Bitboard ep = (CSC_Bitboard)1 << epLoc;
+            ep = (CSC_Bitboard)1 << epLoc;
 
-            // Need to shift "backwards" from the ep location.
-            CSC_Bitboard caps = 0;
+            /* Need to shift "backwards" from the ep location. */
+            caps = 0;
             if (!(ep & CSC_Files[0]))
             {
                 caps |= p == CSC_WHITE ? ep >> capRight : ep << capLeft;
@@ -135,27 +138,27 @@ void FindPawnMoves(
         }
     }
 
-    // Promotions.
-    CSC_Bitboard pawns = b->pieces[CSC_PAWN][p] & promo;
+    /* Promotions. */
+    pawns = b->pieces[CSC_PAWN][p] & promo;
     if (pawns)
     {
-        CSC_Bitboard f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
+        f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
         f1 &= ~all;
 
         AddPromoMoves(b, f1, l, forward);
 
         if (type & CSC_CAPTURES)
         {
-            // Ensure that no captures wrap around the struct CSC_Board.
-            CSC_Bitboard leftCapPawns = pawns & ~CSC_Files[0];
-            CSC_Bitboard rightCapPawns = pawns & ~CSC_Files[7];
+            /* Ensure that no captures wrap around the struct CSC_Board. */
+            leftCapPawns = pawns & ~CSC_Files[0];
+            rightCapPawns = pawns & ~CSC_Files[7];
 
-            // Defining left and right from white's perspective...
-            CSC_Bitboard leftCaps = p == CSC_WHITE
+            /* Defining left and right from white's perspective... */
+            leftCaps = p == CSC_WHITE
                 ? leftCapPawns << capLeft
                 : leftCapPawns >> capRight;
 
-            CSC_Bitboard rightCaps = p == CSC_WHITE
+            rightCaps = p == CSC_WHITE
                 ? rightCapPawns << capRight
                 : rightCapPawns >> capLeft;
 
@@ -334,22 +337,23 @@ struct CSC_MoveList* CSC_GetMoves(
     enum CSC_MoveGenType type)
 {
     struct CSC_MoveList* l = CSC_MakeMoveList();
+    CSC_Bitboard targets, orth, diag;
 
     if (CSC_IsDrawn(b)) return l;
 
     FindPawnMoves(b, l, type);
 
-    CSC_Bitboard targets = 0;
+    targets = 0;
     if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
     if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
 
     FindKnightMoves(b, l, targets);
     FindKingMoves(b, l, targets);
 
-    CSC_Bitboard orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
+    orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindOrthMoves(b, l, orth, targets, CSC_RayAttacks);
 
-    CSC_Bitboard diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
+    diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindDiagMoves(b, l, diag, targets, CSC_RayAttacks);
 
     return l;

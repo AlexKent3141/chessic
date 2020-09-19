@@ -17,10 +17,12 @@ bool RunTests(char* (*tests)())
 
 int main()
 {
+    bool pass;
+
     CSC_InitBits();
     CSC_InitZobrist();
 
-    bool pass = RunTests(AllParserTests)
+    pass = RunTests(AllParserTests)
              && RunTests(AllMoveGenTests)
              && RunTests(AllMakeUndoTests)
              && RunTests(AllPerftTests);

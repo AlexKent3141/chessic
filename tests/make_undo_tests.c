@@ -7,22 +7,24 @@
 
 char* MakeUndoTest(const char* fen)
 {
+    struct CSC_Board* b = CSC_BoardFromFEN(fen);
+    struct CSC_Board* initial;
+    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    CSC_Move m;
+    char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+    int i;
+
     printf("FEN: %s\n", fen);
 
-    struct CSC_Board* b = CSC_BoardFromFEN(fen);
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
-
-    char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
-
-    for (int i = 0; i < l->n; i++)
+    for (i = 0; i < l->n; i++)
     {
-        CSC_Move m = l->moves[i];
+        m = l->moves[i];
 
         memset(buf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
         CSC_MoveToUCIString(m, buf, NULL);
         printf("%s\n", buf);
 
-        struct CSC_Board* initial = CSC_CopyBoard(b);
+        initial = CSC_CopyBoard(b);
         CSC_MakeMove(b, m);
         CSC_UndoMove(b);
 
