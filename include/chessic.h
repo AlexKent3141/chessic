@@ -232,7 +232,9 @@ struct CSC_UCICallbacks
 };
 
 /* Process a UCI command using the specified callbacks. */
-void CSC_UCIProcess(const char*, struct CSC_UCICallbacks*);
+EXPORT void CSC_UCIProcess(
+    const char*,
+    struct CSC_UCICallbacks*);
 
 /* From here on are the commands that the engine can send to the GUI. */
 
@@ -289,11 +291,22 @@ struct CSC_UCIOption
     enum CSC_UCIOptionValueType valueType;
 };
 
-void CSC_UCISendId(const char* name, const char* author);
-void CSC_UCISendOK();
-void CSC_UCIBestMove(CSC_Move, bool ponder);
-void CSC_UCIInfo(struct CSC_UCIInfo* info);
-void CSC_UCISupportedOptions(struct CSC_UCIOption* options, int numOptions);
+EXPORT void CSC_UCISendId(
+    const char* name,
+    const char* author);
+
+EXPORT void CSC_UCISendOK();
+
+EXPORT void CSC_UCIBestMove(
+    CSC_Move,
+    bool ponder);
+
+EXPORT void CSC_UCIInfo(
+    struct CSC_UCIInfo* info);
+
+EXPORT void CSC_UCISupportedOptions(
+    struct CSC_UCIOption* options,
+    int numOptions);
 
 #ifdef __cplusplus
 }

@@ -12,6 +12,7 @@ src_chessic= \
 	src/movegen.c \
 	src/parser.c \
 	src/piece.c \
+	src/uci.c \
 	src/zobrist.c
 
 src_test=$(src_chessic) \
@@ -19,6 +20,7 @@ src_test=$(src_chessic) \
 	tests/movegen_tests.c \
 	tests/parser_tests.c \
 	tests/perft_tests.c \
+	tests/uci_tests.c \
 	tests/test.c
 
 obj_chessic=$(src_chessic:.c=.o)
