@@ -183,9 +183,117 @@ EXPORT enum CSC_MoveType CSC_GetMoveType(CSC_Move);
 EXPORT struct CSC_MoveList* CSC_MakeMoveList();
 EXPORT void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
 EXPORT void CSC_FreeMoveList(struct CSC_MoveList*);
-
 EXPORT void CSC_MoveToUCIString(CSC_Move, char*, int*);
 EXPORT CSC_Move CSC_MoveFromUCIString(struct CSC_Board*, const char*);
+
+/*** From here on are functions to support UCI. ***/
+
+/* The supported search constraints. If a field is NULL in this structure then
+   it has not been specified in the command. */
+struct CSC_SearchConstraints
+{
+    CSC_Move* searchMoves;
+    int numSearchMoves;
+    int* depth;
+    int* numNodes;
+    int* mate;
+    int* moveTime;
+    bool* ponder;
+};
+
+/* Time information for a search. */
+/* The supported time constraints. If a field is NULL in this structure then
+   it has not been specified in the command. */
+struct CSC_TimeConstraints
+{
+    int* wTime;
+    int* bTime;
+    int* wInc;
+    int* bInc;
+    int* movesToGo;
+    int* moveTime;
+    bool* infinite;
+};
+
+/* Callbacks for each type of UCI command. */
+struct CSC_UCICallbacks
+{
+    void (*onUCI)();
+    void (*onDebug)(bool);
+    void (*onIsReady)();
+    void (*onSetOptionName)(const char*);
+    void (*onSetOptionNameValue)(const char*, const char*);
+    void (*onNewGame)();
+    void (*onPosition)(struct CSC_Board*);
+    void (*onGo)(struct CSC_SearchConstraints*, struct CSC_TimeConstraints*);
+    void (*onStop)();
+    void (*onPonderHit)();
+    void (*onQuit)();
+};
+
+/* Process a UCI command using the specified callbacks. */
+void CSC_UCIProcess(const char*, struct CSC_UCICallbacks*);
+
+/* From here on are the commands that the engine can send to the GUI. */
+
+/* The possible types of score that can be reported. Exactly one of these
+   should be provided - the rest should be NULL. */
+struct CSC_UCIScore
+{
+    int* cp;
+    int* mate;
+    int* lowerBound;
+    int* upperBound;
+};
+
+struct CSC_UCIInfo
+{
+    int* depth;
+    int* selDepth;
+    int* time;
+    int* nodes;
+    struct CSC_MoveList* pv;
+    void* multipv; /* TODO. */
+    struct CSC_UCIScore* score;
+    CSC_Move* currMove;
+    int* currMoveMumber;
+    int* hashFull;
+    int* nps;
+    int* tbHits;
+    const char* string;
+    void* refutation; /* TODO */
+    void* currLine; /* TODO */
+};
+
+enum CSC_UCIOptionType
+{
+    CSC_UCI_CHECK,
+    CSC_UCI_SPIN,
+    CSC_UCI_COMBO,
+    CSC_UCI_STRING,
+    CSC_UCI_BUTTON
+};
+
+enum CSC_UCIOptionValueType
+{
+    CSC_UCI_DEFAULT,
+    CSC_UCI_MIN,
+    CSC_UCI_MAX,
+    CSC_UCI_VAR
+};
+
+struct CSC_UCIOption
+{
+    char* name;
+    enum CSC_UCIOptionType type;
+    enum CSC_UCIOptionValueType valueType;
+};
+
+void CSC_UCISendId(const char* name, const char* author);
+void CSC_UCISendOK();
+void CSC_UCIBestMove(CSC_Move, bool ponder);
+void CSC_UCIInfo(struct CSC_UCIInfo* info);
+void CSC_UCISupportedOptions(struct CSC_UCIOption* options, int numOptions);
 
 #ifdef __cplusplus
 }
