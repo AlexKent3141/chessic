@@ -123,26 +123,51 @@ void ProcessPositionCommand(
 {
     const char* startFen =
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    char* fen, *moveBuf;
+    char* moveBuf, *token;
+    char fen[CSC_MAX_FEN_LENGTH];
     struct CSC_Board* position;
     CSC_Move move;
 
-    /* The first argument should be either a fen or 'startpos'. */
-    fen = Token(NULL, ' ', state);
-    if (fen == NULL) return;
-    if (strcmp(fen, "startpos") == 0) fen = (char*)startFen;
+    /* The first argument(s) should be either a fen or 'startpos'. */
+    token = Token(NULL, ' ', state);
+    if (token == NULL) return;
+
+    if (strcmp(token, "startpos") == 0)
+    {
+        strcpy(fen, startFen);
+    }
+    else
+    {
+        /* Until we find the 'moves' string, or we reach a NULL token, keep
+           appending to the FEN string. */
+        strcpy(fen, token);
+        token = Token(NULL, ' ', state);
+        while (token != NULL && strcmp(token, "moves") != 0)
+        {
+            /* Insert a space. */
+            int len = strlen(fen);
+            fen[len] = ' ';
+            fen[len+1] = '\0';
+
+            strcat(fen, token);
+            token = Token(NULL, ' ', state);
+        }
+    }
 
     position = CSC_BoardFromFEN(fen);
     assert(position != NULL);
 
-    /* Next can follow a series of moves. Each move should be applied to the
-       position specified in the FEN string. */
-    moveBuf = Token(NULL, ' ', state);
-    while (moveBuf != NULL)
+    if (token != NULL && strcmp(token, "moves") == 0)
     {
-        move = CSC_MoveFromUCIString(position, moveBuf);
-        CSC_MakeMove(position, move);
-        moveBuf = strtok(NULL, " ");
+        /* Next can follow a series of moves. Each move should be applied to the
+           position specified in the FEN string. */
+        moveBuf = Token(NULL, ' ', state);
+        while (moveBuf != NULL)
+        {
+            move = CSC_MoveFromUCIString(position, moveBuf);
+            CSC_MakeMove(position, move);
+            moveBuf = Token(NULL, ' ', state);
+        }
     }
 
     if (callbacks != NULL && callbacks->onPosition != NULL)

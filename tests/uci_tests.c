@@ -283,6 +283,126 @@ char* ProcessPositionTest_ValidStartPosNoMoves()
     return NULL;
 }
 
+char* ProcessPositionTest_ValidFENNoMoves()
+{
+    const char* initialFEN =
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    char* fen;
+    char cmdBuf[100] = "position ";
+
+    printf("Position valid FEN no moves test\n");
+    ResetFixture();
+
+    callbacks.onPosition = &dummyOnPosition;
+
+    strcat(cmdBuf, initialFEN);
+    CSC_UCIProcess(cmdBuf, &callbacks);
+
+    mu_assert(
+        "We should have received a 'position' command.",
+        fixture.onPositionCalled);
+
+    mu_assert(
+        "We should have received a position.",
+        fixture.position != NULL);
+
+    /* Check that the position is actually the start position by converting
+       to a FEN string. */
+    fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    CSC_FENFromBoard(fixture.position, fen, NULL);
+    mu_assert(
+        "The received position should be the start position.",
+        strcmp(fen, initialFEN) == 0);
+
+    free(fen);
+
+    return NULL;
+}
+
+char* ProcessPositionTest_ValidFENWithMovesNoMoves()
+{
+    const char* initialFEN =
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    char* fen;
+    char cmdBuf[100] = "position ";
+    int len;
+
+    printf("Position valid FEN with 'moves' but no moves test\n");
+    ResetFixture();
+
+    callbacks.onPosition = &dummyOnPosition;
+
+    strcat(cmdBuf, initialFEN);
+    len = strlen(cmdBuf);
+    cmdBuf[len] = ' ';
+    cmdBuf[len+1] = '\0';
+    strcat(cmdBuf, "moves");
+    CSC_UCIProcess(cmdBuf, &callbacks);
+
+    mu_assert(
+        "We should have received a 'position' command.",
+        fixture.onPositionCalled);
+
+    mu_assert(
+        "We should have received a position.",
+        fixture.position != NULL);
+
+    /* Check that the position is actually the start position by converting
+       to a FEN string. */
+    fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    CSC_FENFromBoard(fixture.position, fen, NULL);
+    mu_assert(
+        "The received position should be the start position.",
+        strcmp(fen, initialFEN) == 0);
+
+    free(fen);
+
+    return NULL;
+}
+
+char* ProcessPositionTest_ValidFENWithMoves()
+{
+    const char* initialFEN =
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const char* finalFEN =
+        "rnbqkb1r/pppppppp/5n2/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
+    char* fen;
+    char cmdBuf[100] = "position ";
+    int len;
+
+    printf("Position valid FEN with moves test\n");
+    ResetFixture();
+
+    callbacks.onPosition = &dummyOnPosition;
+
+    strcat(cmdBuf, initialFEN);
+    len = strlen(cmdBuf);
+    cmdBuf[len] = ' ';
+    cmdBuf[len+1] = '\0';
+    strcat(cmdBuf, "moves e2e4 g8f6 e4e5");
+    CSC_UCIProcess(cmdBuf, &callbacks);
+
+    mu_assert(
+        "We should have received a 'position' command.",
+        fixture.onPositionCalled);
+
+    mu_assert(
+        "We should have received a position.",
+        fixture.position != NULL);
+
+    /* Check that the position is actually the start position by converting
+       to a FEN string. */
+    fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    CSC_FENFromBoard(fixture.position, fen, NULL);
+    mu_assert(
+        "The received position should have the moves applied.",
+        strcmp(fen, finalFEN) == 0);
+
+    free(fen);
+
+    return NULL;
+}
+
 char* AllUCITests()
 {
     printf("Running UCI command tests...\n");
@@ -295,6 +415,9 @@ char* AllUCITests()
     mu_run_test(ProcessSetOptionNameValueTest_Valid);
     mu_run_test(ProcessSetOptionNameValueTest_NoValueSpecified);
     mu_run_test(ProcessPositionTest_ValidStartPosNoMoves);
+    mu_run_test(ProcessPositionTest_ValidFENNoMoves);
+    mu_run_test(ProcessPositionTest_ValidFENWithMovesNoMoves);
+    mu_run_test(ProcessPositionTest_ValidFENWithMoves);
 
     /* Final call to free any allocated memory. */
     ResetFixture();
