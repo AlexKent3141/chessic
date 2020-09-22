@@ -7,6 +7,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "utils.h"
 
 enum CSC_PieceType PieceTypeFromFEN(char c)
 {
@@ -85,15 +86,17 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 {
     struct CSC_Board* b = CreateBoardEmpty();
     struct BoardState* bs = Top((struct StateStack*)b->states);
+    struct TokenState state;
     int f = 0; int r = 7;
     size_t i;
     char c;
     char* token;
     char* fenDup = malloc(strlen(fen)*sizeof(char) + 1);
+
     strcpy(fenDup, fen);
 
     /* Get the piece definitions. */
-    token = strtok(fenDup, " ");
+    token = Token(fenDup, ' ', &state);
     for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
@@ -114,13 +117,13 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the colour to move. */
-    token = strtok(NULL, " ");
+    token = Token(NULL, ' ', &state);
     b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
     if (b->player == CSC_WHITE) bs->hash ^= keys.side;
 
     /* Get the castling rights. */
-    token = strtok(NULL, " ");
+    token = Token(NULL, ' ', &state);
     for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
@@ -147,7 +150,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the en-passent square. */
-    token = strtok(NULL, " ");
+    token = Token(NULL, ' ', &state);
     if (token[0] != '-')
     {
         bs->enPassentIndex = LocFromFEN(token);
@@ -155,11 +158,11 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the half-move count. */
-    token = strtok(NULL, " ");
+    token = Token(NULL, ' ', &state);
     bs->plies50Move = atoi(token);
 
     /* Get the full-move count. */
-    token = strtok(NULL, " ");
+    token = Token(NULL, ' ', &state);
     b->turnNumber = atoi(token);
 
     free(fenDup);

@@ -11,10 +11,12 @@ struct TestFixture
     bool onIsReadyCalled;
     bool onSetOptionNameCalled;
     bool onSetOptionNameValueCalled;
+    bool onPositionCalled;
 
     bool debug;
     char* optionName;
     char* optionValue;
+    struct CSC_Board* position;
 };
 
 struct TestFixture fixture;
@@ -27,6 +29,7 @@ void ResetFixture()
     fixture.onIsReadyCalled = false;
     fixture.onSetOptionNameCalled = false;
     fixture.onSetOptionNameValueCalled = false;
+    fixture.onPositionCalled = false;
     fixture.debug = false;
 
     if (fixture.optionName != NULL)
@@ -39,6 +42,12 @@ void ResetFixture()
     {
         free(fixture.optionValue);
         fixture.optionValue = NULL;
+    }
+
+    if (fixture.position != NULL)
+    {
+        CSC_FreeBoard(fixture.position);
+        fixture.position = NULL;
     }
 
     callbacks.onUCI = NULL;
@@ -59,45 +68,6 @@ void dummyOnUCI()
     fixture.onUCICalled = true;
 }
 
-void dummyOnDebug(bool debug)
-{
-    fixture.onDebugCalled = true;
-    fixture.debug = debug;
-}
-
-void dummyOnIsReady()
-{
-    fixture.onIsReadyCalled = true;
-}
-
-void dummyOnSetOptionName(const char* name)
-{
-    fixture.onSetOptionNameCalled = true;
-
-    if (name != NULL)
-    {
-        fixture.optionName = malloc((strlen(name)+1)*sizeof(char));
-        strcpy(fixture.optionName, name);
-    }
-}
-
-void dummyOnSetOptionNameValue(const char* name, const char* value)
-{
-    fixture.onSetOptionNameValueCalled = true;
-
-    if (name != NULL)
-    {
-        fixture.optionName = malloc((strlen(name)+1)*sizeof(char));
-        strcpy(fixture.optionName, name);
-    }
-
-    if (value != NULL)
-    {
-        fixture.optionValue = malloc((strlen(value)+1)*sizeof(char));
-        strcpy(fixture.optionValue, value);
-    }
-}
-
 char* ProcessUCITest()
 {
     printf("UCI test\n");
@@ -111,6 +81,12 @@ char* ProcessUCITest()
         fixture.onUCICalled);
 
     return NULL;
+}
+
+void dummyOnDebug(bool debug)
+{
+    fixture.onDebugCalled = true;
+    fixture.debug = debug;
 }
 
 char* ProcessDebugTest_On()
@@ -153,6 +129,11 @@ char* ProcessDebugTest_Off()
     return NULL;
 }
 
+void dummyOnIsReady()
+{
+    fixture.onIsReadyCalled = true;
+}
+
 char* ProcessIsReadyTest()
 {
     printf("IsReady test\n");
@@ -167,6 +148,12 @@ char* ProcessIsReadyTest()
         fixture.onIsReadyCalled);
 
     return NULL;
+}
+
+void dummyOnSetOptionName(const char* name)
+{
+    fixture.onSetOptionNameCalled = true;
+    fixture.optionName = (char*)name;
 }
 
 char* ProcessSetOptionNameTest_Valid()
@@ -203,6 +190,13 @@ char* ProcessSetOptionNameTest_NoNameSpecified()
         !fixture.onSetOptionNameCalled);
 
     return NULL;
+}
+
+void dummyOnSetOptionNameValue(const char* name, const char* value)
+{
+    fixture.onSetOptionNameValueCalled = true;
+    fixture.optionName = (char*)name;
+    fixture.optionValue = (char*)value;
 }
 
 char* ProcessSetOptionNameValueTest_Valid()
@@ -249,6 +243,46 @@ char* ProcessSetOptionNameValueTest_NoValueSpecified()
     return NULL;
 }
 
+void dummyOnPosition(struct CSC_Board* position)
+{
+    fixture.onPositionCalled = true;
+    fixture.position = position;
+}
+
+char* ProcessPositionTest_ValidStartPosNoMoves()
+{
+    const char* startFen =
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    char* fen;
+
+    printf("Position valid startpos no moves test\n");
+    ResetFixture();
+
+    callbacks.onPosition = &dummyOnPosition;
+
+    CSC_UCIProcess("position startpos", &callbacks);
+
+    mu_assert(
+        "We should have received a 'position' command.",
+        fixture.onPositionCalled);
+
+    mu_assert(
+        "We should have received a position.",
+        fixture.position != NULL);
+
+    /* Check that the position is actually the start position by converting
+       to a FEN string. */
+    fen = malloc(CSC_MAX_FEN_LENGTH*sizeof(char));
+    CSC_FENFromBoard(fixture.position, fen, NULL);
+    mu_assert(
+        "The received position should be the start position.",
+        strcmp(fen, startFen) == 0);
+
+    free(fen);
+
+    return NULL;
+}
+
 char* AllUCITests()
 {
     printf("Running UCI command tests...\n");
@@ -260,6 +294,10 @@ char* AllUCITests()
     mu_run_test(ProcessSetOptionNameTest_NoNameSpecified);
     mu_run_test(ProcessSetOptionNameValueTest_Valid);
     mu_run_test(ProcessSetOptionNameValueTest_NoValueSpecified);
+    mu_run_test(ProcessPositionTest_ValidStartPosNoMoves);
+
+    /* Final call to free any allocated memory. */
+    ResetFixture();
 
     return NULL;
 }

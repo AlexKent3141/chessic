@@ -4,6 +4,7 @@
 #include "make_undo_tests.h"
 #include "perft_tests.h"
 #include "uci_tests.h"
+#include "token_tests.h"
 #include "stdio.h"
 
 /* This corresponds to the variable in min_unit. */
@@ -23,11 +24,12 @@ int main()
     CSC_InitBits();
     CSC_InitZobrist();
 
-    pass = RunTests(AllParserTests)
-             && RunTests(AllMoveGenTests)
-             && RunTests(AllMakeUndoTests)
-             && RunTests(AllUCITests)
-             && RunTests(AllPerftTests);
+    pass = RunTests(AllTokenTests)
+        && RunTests(AllParserTests)
+        && RunTests(AllMoveGenTests)
+        && RunTests(AllMakeUndoTests)
+        && RunTests(AllUCITests)
+        && RunTests(AllPerftTests);
 
     if (pass) printf("ALL TESTS PASSED\n");
     printf("Tests run: %d\n", tests_run);
