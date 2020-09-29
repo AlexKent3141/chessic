@@ -180,24 +180,139 @@ void ProcessGoCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    struct CSC_SearchConstraints search;
+    struct CSC_TimeConstraints time;
+    char* token, *value;
+
+    /* Can take the address of these variables to fill in the constraints. */
+    int depth, numNodes, mate;
+    int wTime, bTime, wInc, bInc, movesToGo, moveTime;
+    bool ponder, infinite;
+
+    /* This sets pointer members to NULL. */
+    memset(&search, 0, sizeof(struct CSC_SearchConstraints));
+    memset(&time, 0, sizeof(struct CSC_TimeConstraints));
+
+    while ((token = Token(NULL, ' ', state)) != NULL)
+    {
+        if (strcmp(token, "searchmoves") == 0)
+        {
+            /* TODO: This is awkward because in order to parse the moves we need
+               to know the board state. Possible solution would be to just pass
+               back the string representations of the moves so that the user
+               actually does the parsing. */
+        }
+        else if (strcmp(token, "ponder") == 0)
+        {
+            ponder = true;
+            search.ponder = &ponder;
+        }
+        else if (strcmp(token, "wtime") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                wTime = atoi(value);
+                time.wTime = &wTime;
+            }
+        }
+        else if (strcmp(token, "btime") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                bTime = atoi(value);
+                time.bTime = &bTime;
+            }
+        }
+        else if (strcmp(token, "winc") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                wInc = atoi(value);
+                time.wInc = &wInc;
+            }
+        }
+        else if (strcmp(token, "binc") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                bInc = atoi(value);
+                time.bInc = &bInc;
+            }
+        }
+        else if (strcmp(token, "movestogo") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                movesToGo = atoi(value);
+                time.movesToGo = &movesToGo;
+            }
+        }
+        else if (strcmp(token, "depth") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                depth = atoi(value);
+                search.depth = &depth;
+            }
+        }
+        else if (strcmp(token, "nodes") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                numNodes = atoi(value);
+                search.numNodes = &numNodes;
+            }
+        }
+        else if (strcmp(token, "mate") == 0)
+        {
+            value = Token(NULL, ' ', state);
+            if (value != NULL)
+            {
+                mate = atoi(value);
+                search.mate = &mate;
+            }
+        }
+        else if (strcmp(token, "infinite") == 0)
+        {
+            infinite = true;
+            time.infinite = &infinite;
+        }
+
+        /* Tokens that we don't recognise are ignored. */
+    }
+
+    if (callbacks != NULL && callbacks->onGo != NULL)
+    {
+        callbacks->onGo(&search, &time);
+    }
 }
 
 void ProcessStopCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    /* TODO */
 }
 
 void ProcessPonderHitCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    /* TODO */
 }
 
 void ProcessQuitCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    /* TODO */
 }
 
 /* Process the given command and call the corresponding callbacks. */

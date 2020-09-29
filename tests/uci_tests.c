@@ -12,11 +12,14 @@ struct TestFixture
     bool onSetOptionNameCalled;
     bool onSetOptionNameValueCalled;
     bool onPositionCalled;
+    bool onGoCalled;
 
     bool debug;
     char* optionName;
     char* optionValue;
     struct CSC_Board* position;
+
+    int depth;
 };
 
 struct TestFixture fixture;
@@ -30,6 +33,8 @@ void ResetFixture()
     fixture.onSetOptionNameCalled = false;
     fixture.onSetOptionNameValueCalled = false;
     fixture.onPositionCalled = false;
+    fixture.onGoCalled = false;
+
     fixture.debug = false;
 
     if (fixture.optionName != NULL)
@@ -49,6 +54,8 @@ void ResetFixture()
         CSC_FreeBoard(fixture.position);
         fixture.position = NULL;
     }
+
+    fixture.depth = -1;
 
     callbacks.onUCI = NULL;
     callbacks.onDebug = NULL;
@@ -403,6 +410,38 @@ char* ProcessPositionTest_ValidFENWithMoves()
     return NULL;
 }
 
+void dummyOnGo(
+    struct CSC_SearchConstraints* search,
+    struct CSC_TimeConstraints* time)
+{
+    fixture.onGoCalled = true;
+
+    if (search != NULL && search->depth != NULL)
+    {
+        fixture.depth = *search->depth;
+    }
+}
+
+char* ProcessGoTest_Depth()
+{
+    printf("Go with depth test\n");
+    ResetFixture();
+
+    callbacks.onGo = &dummyOnGo;
+
+    CSC_UCIProcess("go depth 10", &callbacks);
+
+    mu_assert(
+        "We should have received a 'go' command.",
+        fixture.onGoCalled);
+
+    mu_assert(
+        "Depth should have been set to 10.",
+        fixture.depth == 10);
+
+    return NULL;
+}
+
 char* AllUCITests()
 {
     printf("Running UCI command tests...\n");
@@ -418,6 +457,7 @@ char* AllUCITests()
     mu_run_test(ProcessPositionTest_ValidFENNoMoves);
     mu_run_test(ProcessPositionTest_ValidFENWithMovesNoMoves);
     mu_run_test(ProcessPositionTest_ValidFENWithMoves);
+    mu_run_test(ProcessGoTest_Depth);
 
     /* Final call to free any allocated memory. */
     ResetFixture();

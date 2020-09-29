@@ -192,12 +192,10 @@ EXPORT CSC_Move CSC_MoveFromUCIString(struct CSC_Board*, const char*);
    it has not been specified in the command. */
 struct CSC_SearchConstraints
 {
-    CSC_Move* searchMoves;
-    int numSearchMoves;
+    struct CSC_MoveList* searchMoves;
     int* depth;
     int* numNodes;
     int* mate;
-    int* moveTime;
     bool* ponder;
 };
 
