@@ -414,6 +414,7 @@ void dummyOnGo(
     struct CSC_SearchConstraints* search,
     struct CSC_TimeConstraints* time)
 {
+    (void)time;
     fixture.onGoCalled = true;
 
     if (search != NULL && search->depth != NULL)

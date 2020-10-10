@@ -1,13 +1,18 @@
 #include "../include/chessic.h"
 #include "assert.h"
 #include "string.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "utils.h"
+
+/* This macro is used to suppress a few 'unused parameter' warnings. */
+#define UNUSED(x) (void)(x)
 
 void ProcessUCICommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    UNUSED(state);
     if (callbacks != NULL && callbacks->onUCI != NULL)
     {
         callbacks->onUCI();
@@ -37,6 +42,7 @@ void ProcessIsReadyCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    UNUSED(state);
     if (callbacks != NULL && callbacks->onIsReady!= NULL)
     {
         callbacks->onIsReady();
@@ -105,12 +111,15 @@ void ProcessRegisterCommand(
     struct TokenState* state)
 {
     /* TODO: Not so interested in this so leaving for now. */
+    UNUSED(callbacks);
+    UNUSED(state);
 }
 
 void ProcessNewGameCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
+    UNUSED(state);
     if (callbacks != NULL && callbacks->onNewGame != NULL)
     {
         callbacks->onNewGame();
@@ -186,7 +195,7 @@ void ProcessGoCommand(
 
     /* Can take the address of these variables to fill in the constraints. */
     int depth, numNodes, mate;
-    int wTime, bTime, wInc, bInc, movesToGo, moveTime;
+    int wTime, bTime, wInc, bInc, movesToGo;
     bool ponder, infinite;
 
     /* This sets pointer members to NULL. */
@@ -298,7 +307,11 @@ void ProcessStopCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
-    /* TODO */
+    UNUSED(state);
+    if (callbacks != NULL && callbacks->onStop != NULL)
+    {
+        callbacks->onStop();
+    }
 }
 
 void ProcessPonderHitCommand(
@@ -306,13 +319,19 @@ void ProcessPonderHitCommand(
     struct TokenState* state)
 {
     /* TODO */
+    UNUSED(callbacks);
+    UNUSED(state);
 }
 
 void ProcessQuitCommand(
     struct CSC_UCICallbacks* callbacks,
     struct TokenState* state)
 {
-    /* TODO */
+    UNUSED(state);
+    if (callbacks != NULL && callbacks->onQuit != NULL)
+    {
+        callbacks->onQuit();
+    }
 }
 
 /* Process the given command and call the corresponding callbacks. */
@@ -388,25 +407,149 @@ void CSC_UCISendId(
     const char* name,
     const char* author)
 {
+    printf("id name %s\n", name);
+    printf("id author %s\n", author);
+    printf("uciok\n");
 }
 
-void CSC_UCISendOK()
+void CSC_UCISendReadyOK()
 {
+    printf("readyok\n");
 }
 
 void CSC_UCIBestMove(
-    CSC_Move move,
-    bool ponder)
+    CSC_Move bestMove,
+    CSC_Move* ponderMove)
 {
+    char moveBuf[CSC_MAX_UCI_MOVE_LENGTH];
+    CSC_MoveToUCIString(bestMove, moveBuf, NULL);
+    printf("bestmove %s", moveBuf);
+    if (ponderMove)
+    {
+        memset(moveBuf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+        CSC_MoveToUCIString(*ponderMove, moveBuf, NULL);
+        printf(" ponder %s", moveBuf);
+    }
+
+    printf("\n");
 }
 
 void CSC_UCIInfo(
     struct CSC_UCIInfo* info)
 {
+    char moveBuf[CSC_MAX_UCI_MOVE_LENGTH];
+    int i;
+
+    if (!info) return;
+
+    printf("info");
+
+    if (info->depth)
+    {
+        printf("depth %d", *info->depth);
+    }
+
+    if (info->selDepth)
+    {
+        printf("seldepth %d", *info->selDepth);
+    }
+
+    if (info->time)
+    {
+        printf("time %d", *info->time);
+    }
+
+    if (info->nodes)
+    {
+        printf("nodes %d", *info->nodes);
+    }
+
+    if (info->pv)
+    {
+        printf("pv");
+        for (i = 0; i < info->pv->n; i++)
+        {
+            memset(moveBuf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+            CSC_MoveToUCIString(info->pv->moves[i], moveBuf, NULL);
+            printf(" %s", moveBuf);
+        }
+    }
+
+    if (info->multipv)
+    {
+        /* TODO */
+    }
+
+    if (info->score)
+    {
+        if (info->score->cp)
+        {
+            printf("cp %d", *info->score->cp);
+        }
+        else if (info->score->mate)
+        {
+            printf("mate %d", *info->score->mate);
+        }
+        else if (info->score->lowerBound)
+        {
+            printf("lowerbound %d", *info->score->lowerBound);
+        }
+        else if (info->score->upperBound)
+        {
+            printf("upperbound %d", *info->score->upperBound);
+        }
+    }
+
+    if (info->currMove)
+    {
+        memset(moveBuf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
+        CSC_MoveToUCIString(*info->currMove, moveBuf, NULL);
+        printf("currmove %s", moveBuf);
+    }
+
+    if (info->currMoveNumber)
+    {
+        printf("currmovenumber %d", *info->currMoveNumber);
+    }
+
+    if (info->hashFull)
+    {
+        printf("hashfull %d", *info->hashFull);
+    }
+
+    if (info->nps)
+    {
+        printf("nps %d", *info->nps);
+    }
+
+    if (info->tbHits)
+    {
+        printf("tbhits %d", *info->tbHits);
+    }
+
+    if (info->string)
+    {
+        printf("string %s", info->string);
+    }
+
+    if (info->refutation)
+    {
+        /* TODO */
+    }
+
+    if (info->currLine)
+    {
+        /* TODO */
+    }
+
+    printf("\n");
 }
 
 void CSC_UCISupportedOptions(
     struct CSC_UCIOption* options,
     int numOptions)
 {
+    /* TODO */
+    UNUSED(options);
+    UNUSED(numOptions);
 }

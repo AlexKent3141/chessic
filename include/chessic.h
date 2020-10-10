@@ -256,7 +256,7 @@ struct CSC_UCIInfo
     void* multipv; /* TODO. */
     struct CSC_UCIScore* score;
     CSC_Move* currMove;
-    int* currMoveMumber;
+    int* currMoveNumber;
     int* hashFull;
     int* nps;
     int* tbHits;
@@ -293,11 +293,11 @@ EXPORT void CSC_UCISendId(
     const char* name,
     const char* author);
 
-EXPORT void CSC_UCISendOK();
+EXPORT void CSC_UCISendReadyOK();
 
 EXPORT void CSC_UCIBestMove(
-    CSC_Move,
-    bool ponder);
+    CSC_Move bestMove,
+    CSC_Move* ponderMove);
 
 EXPORT void CSC_UCIInfo(
     struct CSC_UCIInfo* info);
