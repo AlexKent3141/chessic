@@ -2,6 +2,7 @@
 #define __CHESSIC_H__
 
 #include "stdbool.h"
+#include "stddef.h"
 #include "stdint.h"
 
 #define EXPORT __attribute__ ((visibility("default")))
@@ -309,6 +310,19 @@ EXPORT void CSC_UCIInfo(
 EXPORT void CSC_UCISupportedOptions(
     struct CSC_UCIOption* options,
     int numOptions);
+
+/* Small utilities to help with parsing. */
+struct CSC_TokenState
+{
+    char* str;
+    size_t start;
+    size_t len;
+};
+
+EXPORT char* CSC_Token(
+    char* str,
+    char delimiter,
+    struct CSC_TokenState* state);
 
 #ifdef __cplusplus
 }

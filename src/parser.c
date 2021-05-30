@@ -7,7 +7,6 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include "utils.h"
 
 enum CSC_PieceType PieceTypeFromFEN(char c)
 {
@@ -86,7 +85,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
 {
     struct CSC_Board* b = CreateBoardEmpty();
     struct BoardState* bs = Top((struct StateStack*)b->states);
-    struct TokenState state;
+    struct CSC_TokenState state;
     int f = 0; int r = 7;
     size_t i;
     char c;
@@ -96,7 +95,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     strcpy(fenDup, fen);
 
     /* Get the piece definitions. */
-    token = Token(fenDup, ' ', &state);
+    token = CSC_Token(fenDup, ' ', &state);
     for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
@@ -117,13 +116,13 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the colour to move. */
-    token = Token(NULL, ' ', &state);
+    token = CSC_Token(NULL, ' ', &state);
     b->player = token[0] == 'w' ? CSC_WHITE : CSC_BLACK;
 
     if (b->player == CSC_WHITE) bs->hash ^= keys.side;
 
     /* Get the castling rights. */
-    token = Token(NULL, ' ', &state);
+    token = CSC_Token(NULL, ' ', &state);
     for (i = 0; i < strlen(token); i++)
     {
         c = token[i];
@@ -150,7 +149,7 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the en-passent square. */
-    token = Token(NULL, ' ', &state);
+    token = CSC_Token(NULL, ' ', &state);
     if (token[0] != '-')
     {
         bs->enPassentIndex = LocFromFEN(token);
@@ -158,11 +157,11 @@ struct CSC_Board* CSC_BoardFromFEN(const char* fen)
     }
 
     /* Get the half-move count. */
-    token = Token(NULL, ' ', &state);
+    token = CSC_Token(NULL, ' ', &state);
     bs->plies50Move = atoi(token);
 
     /* Get the full-move count. */
-    token = Token(NULL, ' ', &state);
+    token = CSC_Token(NULL, ' ', &state);
     b->turnNumber = atoi(token);
 
     free(fenDup);

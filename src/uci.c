@@ -3,14 +3,13 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "utils.h"
 
 /* This macro is used to suppress a few 'unused parameter' warnings. */
 #define UNUSED(x) (void)(x)
 
 void ProcessUCICommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     UNUSED(state);
     if (callbacks != NULL && callbacks->onUCI != NULL)
@@ -21,9 +20,9 @@ void ProcessUCICommand(
 
 void ProcessDebugCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
-    char* arg = Token(NULL, ' ', state);
+    char* arg = CSC_Token(NULL, ' ', state);
     bool debugOn;
 
     /* We expect an argument specifying whether debug should be turned on
@@ -40,7 +39,7 @@ void ProcessDebugCommand(
 
 void ProcessIsReadyCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     UNUSED(state);
     if (callbacks != NULL && callbacks->onIsReady!= NULL)
@@ -55,18 +54,18 @@ void ProcessIsReadyCommand(
    into the callback. */
 void ProcessSetOptionCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     char* nameCmd, *valueCmd;
     char* nameToken = NULL, *valueToken = NULL;
     char* name, *value;
     
     /* The first argument must be 'name'. */
-    nameCmd = Token(NULL, ' ', state);
+    nameCmd = CSC_Token(NULL, ' ', state);
     if (nameCmd == NULL || strcmp(nameCmd, "name") != 0) return;
 
     /* The next argument must be the name of the option. */
-    nameToken = Token(NULL, ' ', state);
+    nameToken = CSC_Token(NULL, ' ', state);
     if (nameToken == NULL) return;
 
     name = malloc((strlen(nameToken)+1)*sizeof(char));
@@ -74,7 +73,7 @@ void ProcessSetOptionCommand(
     name[strlen(nameToken)] = '\0';
 
     /* The value may not be specified. */
-    valueCmd = Token(NULL, ' ', state);
+    valueCmd = CSC_Token(NULL, ' ', state);
     if (valueCmd == NULL || strcmp(valueCmd, "value") != 0)
     {
         if (callbacks != NULL && callbacks->onSetOptionName != NULL)
@@ -88,7 +87,7 @@ void ProcessSetOptionCommand(
     }
     else
     {
-        valueToken = Token(NULL, ' ', state);
+        valueToken = CSC_Token(NULL, ' ', state);
         if (valueToken != NULL &&
             callbacks != NULL &&
             callbacks->onSetOptionNameValue != NULL)
@@ -108,7 +107,7 @@ void ProcessSetOptionCommand(
 
 void ProcessRegisterCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     /* TODO: Not so interested in this so leaving for now. */
     UNUSED(callbacks);
@@ -117,7 +116,7 @@ void ProcessRegisterCommand(
 
 void ProcessNewGameCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     UNUSED(state);
     if (callbacks != NULL && callbacks->onNewGame != NULL)
@@ -128,7 +127,7 @@ void ProcessNewGameCommand(
 
 void ProcessPositionCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     const char* startFen =
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -138,21 +137,21 @@ void ProcessPositionCommand(
     CSC_Move move;
 
     /* The first argument(s) should be either a fen or 'startpos'. */
-    token = Token(NULL, ' ', state);
+    token = CSC_Token(NULL, ' ', state);
     if (token == NULL) return;
 
     if (strcmp(token, "startpos") == 0)
     {
         strcpy(fen, startFen);
-        token = Token(NULL, ' ', state);
+        token = CSC_Token(NULL, ' ', state);
     }
     else if (strcmp(token, "fen") == 0)
     {
         /* Until we find the 'moves' string, or we reach a NULL token, keep
            appending to the FEN string. */
-        token = Token(NULL, ' ', state);
+        token = CSC_Token(NULL, ' ', state);
         strcpy(fen, token);
-        token = Token(NULL, ' ', state);
+        token = CSC_Token(NULL, ' ', state);
         while (token != NULL && strcmp(token, "moves") != 0)
         {
             /* Insert a space. */
@@ -161,7 +160,7 @@ void ProcessPositionCommand(
             fen[len+1] = '\0';
 
             strcat(fen, token);
-            token = Token(NULL, ' ', state);
+            token = CSC_Token(NULL, ' ', state);
         }
     }
     else
@@ -176,12 +175,12 @@ void ProcessPositionCommand(
     {
         /* Next can follow a series of moves. Each move should be applied to the
            position specified in the FEN string. */
-        moveBuf = Token(NULL, ' ', state);
+        moveBuf = CSC_Token(NULL, ' ', state);
         while (moveBuf != NULL)
         {
             move = CSC_MoveFromUCIString(position, moveBuf);
             CSC_MakeMove(position, move);
-            moveBuf = Token(NULL, ' ', state);
+            moveBuf = CSC_Token(NULL, ' ', state);
         }
     }
 
@@ -193,7 +192,7 @@ void ProcessPositionCommand(
 
 void ProcessGoCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     struct CSC_SearchConstraints search;
     struct CSC_TimeConstraints time;
@@ -208,7 +207,7 @@ void ProcessGoCommand(
     memset(&search, 0, sizeof(struct CSC_SearchConstraints));
     memset(&time, 0, sizeof(struct CSC_TimeConstraints));
 
-    while ((token = Token(NULL, ' ', state)) != NULL)
+    while ((token = CSC_Token(NULL, ' ', state)) != NULL)
     {
         if (strcmp(token, "searchmoves") == 0)
         {
@@ -224,7 +223,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "wtime") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 wTime = atoi(value);
@@ -233,7 +232,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "btime") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 bTime = atoi(value);
@@ -242,7 +241,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "winc") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 wInc = atoi(value);
@@ -251,7 +250,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "binc") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 bInc = atoi(value);
@@ -260,7 +259,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "movestogo") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 movesToGo = atoi(value);
@@ -269,7 +268,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "depth") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 depth = atoi(value);
@@ -278,7 +277,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "nodes") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 numNodes = atoi(value);
@@ -287,7 +286,7 @@ void ProcessGoCommand(
         }
         else if (strcmp(token, "mate") == 0)
         {
-            value = Token(NULL, ' ', state);
+            value = CSC_Token(NULL, ' ', state);
             if (value != NULL)
             {
                 mate = atoi(value);
@@ -300,7 +299,7 @@ void ProcessGoCommand(
             time.infinite = &infinite;
         }
 
-        /* Tokens that we don't recognise are ignored. */
+        /* CSC_Tokens that we don't recognise are ignored. */
     }
 
     if (callbacks != NULL && callbacks->onGo != NULL)
@@ -311,7 +310,7 @@ void ProcessGoCommand(
 
 void ProcessStopCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     UNUSED(state);
     if (callbacks != NULL && callbacks->onStop != NULL)
@@ -322,7 +321,7 @@ void ProcessStopCommand(
 
 void ProcessPonderHitCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     /* TODO */
     UNUSED(callbacks);
@@ -331,7 +330,7 @@ void ProcessPonderHitCommand(
 
 void ProcessQuitCommand(
     struct CSC_UCICallbacks* callbacks,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     UNUSED(state);
     if (callbacks != NULL && callbacks->onQuit != NULL)
@@ -345,7 +344,7 @@ void CSC_UCIProcess(
     const char* cmd,
     struct CSC_UCICallbacks* callbacks)
 {
-    struct TokenState state;
+    struct CSC_TokenState state;
     int len = strlen(cmd);
     char* copy = malloc((len+1)*sizeof(char));
     char* token;
@@ -353,7 +352,7 @@ void CSC_UCIProcess(
     strcpy(copy, cmd);
     copy[len] = '\0';
 
-    token = Token(copy, ' ', &state);
+    token = CSC_Token(copy, ' ', &state);
     if (token == NULL)
     {
         free(copy);

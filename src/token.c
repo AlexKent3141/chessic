@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "chessic.h"
 #include "assert.h"
 #include "stddef.h"
 #include "string.h"
@@ -6,7 +6,7 @@
 #include "stdio.h"
 
 char* NextToken(
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     while (state->start < state->len
         && state->str[state->start] == '\0')
@@ -22,7 +22,7 @@ char* NextToken(
 char* TokenFirst(
     char* str,
     char delimiter,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     size_t i;
 
@@ -45,7 +45,7 @@ char* TokenFirst(
 }
 
 char* TokenNext(
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     /* Move to the next NUL character. */
     while (state->start < state->len
@@ -57,10 +57,10 @@ char* TokenNext(
     return NextToken(state);
 }
 
-char* Token(
+char* CSC_Token(
     char* str,
     char delimiter,
-    struct TokenState* state)
+    struct CSC_TokenState* state)
 {
     return str
         ? TokenFirst(str, delimiter, state)

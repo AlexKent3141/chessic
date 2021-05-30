@@ -296,7 +296,6 @@ void CSC_UndoMove(struct CSC_Board* b)
    is legal (i.e. the king doesn't end in check). */
 bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
 {
-    struct BoardState* bs;
     CSC_Piece sp, cap;
     enum CSC_MoveType mt;
     int p, s, e, capLoc;
@@ -309,7 +308,6 @@ bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
     s = CSC_GetMoveStart(m);
     e = CSC_GetMoveEnd(m);
 
-    bs = Top((struct StateStack*)b->states);
     sp = RemovePiece(b, s, NULL);
     cap = b->squares[e];
 
@@ -320,8 +318,6 @@ bool CSC_IsLegal(struct CSC_Board* b, CSC_Move m)
     capLoc = e;
     if (mt == CSC_ENPASSENT)
     {
-        assert(bs->enPassentIndex != CSC_BAD_LOC);
-
         capLoc = e + (p == CSC_WHITE ? -CSC_FILE_NB : CSC_FILE_NB);
         cap = RemovePiece(b, capLoc, NULL);
     }

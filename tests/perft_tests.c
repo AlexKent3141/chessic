@@ -31,7 +31,7 @@ void LoadTestCases()
     testCases = malloc(MAX_TEST_CASES*sizeof(struct TestCase));
     numTestCases = 0;
 
-    f = fopen("tests/perftsuite.epd", "r");
+    f = fopen("perftsuite.epd", "r");
     if (f != NULL)
     {
         while (fgets(line, MAX_LINE_LENGTH, f))
