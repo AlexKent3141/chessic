@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "zobrist.h"
 
 struct ZobristKeys keys;

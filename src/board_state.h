@@ -1,7 +1,7 @@
 #ifndef __CHESSIC_BOARD_STATE_H__
 #define __CHESSIC_BOARD_STATE_H__
 
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "stdlib.h"
 
 struct BoardState

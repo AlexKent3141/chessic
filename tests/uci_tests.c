@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "minunit.h"
 #include "stdio.h"
 #include "stdlib.h"

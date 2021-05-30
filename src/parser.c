@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "board.h"
 #include "board_state.h"
 #include "zobrist.h"

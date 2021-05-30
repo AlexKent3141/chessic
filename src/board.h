@@ -1,7 +1,7 @@
 #ifndef __CHESSIC_BOARD_H__
 #define __CHESSIC_BOARD_H__
 
-#include "../include/chessic.h"
+#include "chessic.h"
 
 struct CSC_Board* CreateBoardEmpty();
 

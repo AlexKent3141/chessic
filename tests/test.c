@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "parser_tests.h"
 #include "movegen_tests.h"
 #include "make_undo_tests.h"

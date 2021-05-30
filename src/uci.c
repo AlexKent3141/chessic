@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "assert.h"
 #include "string.h"
 #include "stdio.h"

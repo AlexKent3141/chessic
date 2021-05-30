@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 
 CSC_Piece CSC_CreatePiece(char col, enum CSC_PieceType type)
 {

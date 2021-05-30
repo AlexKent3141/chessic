@@ -1,4 +1,4 @@
-#include "../include/chessic.h"
+#include "chessic.h"
 #include "make_undo_tests.h"
 #include "minunit.h"
 #include "string.h"
