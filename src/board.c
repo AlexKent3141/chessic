@@ -349,7 +349,7 @@ bool CSC_IsDrawn(struct CSC_Board* b)
     CSC_Hash latestHash;
     int hashCount = 1;
 
-    if (bs->plies50Move >= 50) return true;
+    if (bs->plies50Move >= 100) return true;
 
     /* Examine hashes to determine whether there has been a draw by repetition. */
     /* When checking these we can stop when we find the first irreversible move
