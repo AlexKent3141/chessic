@@ -12,9 +12,13 @@
 
 #define CSC_BAD_LOC -1
 #define CSC_MAX_MOVES 250
+#define CSC_MAX_GAME_LENGTH 6000
 
 #define CSC_MAX_FEN_LENGTH 100
 #define CSC_MAX_UCI_MOVE_LENGTH 6
+
+#define CSC_MAX_UCI_COMMAND_LENGTH \
+    CSC_MAX_UCI_MOVE_LENGTH * CSC_MAX_GAME_LENGTH + 100
 
 #ifdef __cplusplus
 extern "C" {

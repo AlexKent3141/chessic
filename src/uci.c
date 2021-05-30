@@ -144,11 +144,13 @@ void ProcessPositionCommand(
     if (strcmp(token, "startpos") == 0)
     {
         strcpy(fen, startFen);
+        token = Token(NULL, ' ', state);
     }
-    else
+    else if (strcmp(token, "fen") == 0)
     {
         /* Until we find the 'moves' string, or we reach a NULL token, keep
            appending to the FEN string. */
+        token = Token(NULL, ' ', state);
         strcpy(fen, token);
         token = Token(NULL, ' ', state);
         while (token != NULL && strcmp(token, "moves") != 0)
@@ -161,6 +163,10 @@ void ProcessPositionCommand(
             strcat(fen, token);
             token = Token(NULL, ' ', state);
         }
+    }
+    else
+    {
+        return;
     }
 
     position = CSC_BoardFromFEN(fen);
@@ -410,11 +416,13 @@ void CSC_UCISendId(
     printf("id name %s\n", name);
     printf("id author %s\n", author);
     printf("uciok\n");
+    fflush(stdout);
 }
 
 void CSC_UCISendReadyOK()
 {
     printf("readyok\n");
+    fflush(stdout);
 }
 
 void CSC_UCIBestMove(
@@ -432,6 +440,7 @@ void CSC_UCIBestMove(
     }
 
     printf("\n");
+    fflush(stdout);
 }
 
 void CSC_UCIInfo(
@@ -543,6 +552,7 @@ void CSC_UCIInfo(
     }
 
     printf("\n");
+    fflush(stdout);
 }
 
 void CSC_UCISupportedOptions(
