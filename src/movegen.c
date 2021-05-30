@@ -332,14 +332,14 @@ void FindDiagMoves(
     }
 }
 
-struct CSC_MoveList* CSC_GetMoves(
+void CSC_GetMoves(
     struct CSC_Board* b,
+    struct CSC_MoveList* l,
     enum CSC_MoveGenType type)
 {
-    struct CSC_MoveList* l = CSC_MakeMoveList();
     CSC_Bitboard targets, orth, diag;
 
-    if (CSC_IsDrawn(b)) return l;
+    if (CSC_IsDrawn(b)) return;
 
     FindPawnMoves(b, l, type);
 
@@ -355,6 +355,4 @@ struct CSC_MoveList* CSC_GetMoves(
 
     diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindDiagMoves(b, l, diag, targets, CSC_RayAttacks);
-
-    return l;
 }

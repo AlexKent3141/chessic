@@ -9,10 +9,12 @@ char* MakeUndoTest(const char* fen)
 {
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
     struct CSC_Board* initial;
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    struct CSC_MoveList* l = CSC_MakeMoveList();
     CSC_Move m;
     char* buf = malloc(CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
     int i;
+
+    CSC_GetMoves(b, l, CSC_ALL);
 
     printf("FEN: %s\n", fen);
 

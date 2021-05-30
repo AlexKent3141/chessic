@@ -31,7 +31,7 @@ void onPosition(struct CSC_Board* board)
    For this test engine just report a random best move. */
 void onGo()
 {
-    struct CSC_MoveList* list;
+    struct CSC_MoveList* list = CSC_MakeMoveList();
     CSC_Move bestMove;
 
     if (latestPosition == NULL)
@@ -39,7 +39,7 @@ void onGo()
         return;
     }
 
-    list = CSC_GetMoves(latestPosition, CSC_ALL);
+    CSC_GetMoves(latestPosition, list, CSC_ALL);
     if (list->n > 0)
     {
         bestMove = list->moves[rand() % list->n];

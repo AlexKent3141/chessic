@@ -59,6 +59,8 @@ void LoadTestCases()
     }
 }
 
+struct CSC_MoveList** list_per_depth = NULL;
+
 int Perft(struct CSC_Board* b, int depth)
 {
     struct CSC_MoveList* l;
@@ -67,7 +69,10 @@ int Perft(struct CSC_Board* b, int depth)
 
     if (depth == 0) return 1;
 
-    l = CSC_GetMoves(b, CSC_ALL);
+    l = list_per_depth[depth - 1];
+    l->n = 0;
+
+    CSC_GetMoves(b, l, CSC_ALL);
     for (i = 0; i < l->n; i++)
     {
         m = l->moves[i];
@@ -76,8 +81,6 @@ int Perft(struct CSC_Board* b, int depth)
         CSC_UndoMove(b);
     }
 
-    CSC_FreeMoveList(l);
-
     return nodes;
 }
 
@@ -85,18 +88,34 @@ char* PerftTest()
 {
     struct TestCase test = testCases[currentTest];
     struct CSC_Board* b;
-    int nodes;
+    int nodes, i;
 
     printf("Position %s, Depth %d, Expected %d\n",
         test.fen,
         test.depth,
         test.expected);
 
+    /* Allocate the move lists. */
+    list_per_depth = malloc(test.depth * sizeof(struct CSC_MoveList*));
+    for (i = 0; i < test.depth; i++)
+    {
+        list_per_depth[i] = CSC_MakeMoveList();
+    }
+
     b = CSC_BoardFromFEN(test.fen);
     nodes = Perft(b, test.depth);
     printf("Got: %d\n", nodes);
     mu_assert("Incorrect perft value", nodes == test.expected);
     CSC_FreeBoard(b);
+
+    /* Free the move lists. */
+    for (i = 0; i < test.depth; i++)
+    {
+      CSC_FreeMoveList(list_per_depth[i]);
+    }
+
+    free(list_per_depth);
+
     return NULL;
 }
 

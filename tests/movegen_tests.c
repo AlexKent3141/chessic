@@ -8,10 +8,12 @@
 char* MoveGenTest(const char* fen, int expected)
 {
     struct CSC_Board* b = CSC_BoardFromFEN(fen);
-    struct CSC_MoveList* l = CSC_GetMoves(b, CSC_ALL);
+    struct CSC_MoveList* l = CSC_MakeMoveList();
     CSC_Move move;
     char* buf;
     int i;
+
+    CSC_GetMoves(b, l, CSC_ALL);
 
     printf("FEN: %s\n", fen);
     printf("Expected: %d\n", expected);
@@ -92,9 +94,10 @@ char* MoveGenTestDrawByRepetition1()
 {
     struct CSC_Board* b = CSC_BoardFromFEN(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    struct CSC_MoveList* l;
+    struct CSC_MoveList* l = CSC_MakeMoveList();
     CSC_Move whiteKnightForward, blackKnightForward;
     CSC_Move whiteKnightBack, blackKnightBack;
+
     int turn;
 
     for (turn = 0; turn < 3; turn++)
@@ -116,7 +119,7 @@ char* MoveGenTestDrawByRepetition1()
     whiteKnightForward = CSC_MoveFromUCIString(b, "g1f3");
     CSC_MakeMove(b, whiteKnightForward);
 
-    l = CSC_GetMoves(b, CSC_ALL);
+    CSC_GetMoves(b, l, CSC_ALL);
     mu_assert("No moves should be available because the game is drawn", l->n == 0);
 
     CSC_FreeMoveList(l);
