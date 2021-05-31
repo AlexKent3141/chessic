@@ -182,10 +182,10 @@ EXPORT void CSC_UndoMove(struct CSC_Board*);
 EXPORT bool CSC_IsAttacked(struct CSC_Board*, int);
 
 /* Methods for creating and interacting with pieces. */
-EXPORT CSC_Piece CSC_CreatePiece(char, enum CSC_PieceType);
-EXPORT char CSC_GetPieceColour(CSC_Piece);
-EXPORT enum CSC_PieceType CSC_GetPieceType(CSC_Piece);
-EXPORT void CSC_SetPieceType(CSC_Piece*, enum CSC_PieceType);
+#define CSC_CreatePiece(col, pt) (col + (pt << 1))
+#define CSC_GetPieceColour(p)    (p & 0x1)
+#define CSC_GetPieceType(p)      (p >> 1)
+#define CSC_SetPieceType(pp, pt) (*pp = (*pp & 0x1) + (pt << 1))
 
 /* Methods for creating and interacting with moves. */
 EXPORT CSC_Move CSC_CreateMove(char, char, enum CSC_PieceType, enum CSC_MoveType);

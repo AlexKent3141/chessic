@@ -7,7 +7,6 @@ add_library(chessic
     move.c
     movegen.c
     parser.c
-    piece.c
     uci.c
     token.c
     zobrist.c)
