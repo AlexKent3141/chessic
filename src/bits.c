@@ -1,6 +1,10 @@
 #include "chessic.h"
 #include "stdio.h"
 
+#ifdef _MSC_VER
+#include "intrin.h"
+#endif
+
 CSC_Bitboard CSC_Ranks[8];
 CSC_Bitboard CSC_Files[8];
 CSC_Bitboard CSC_KnightAttacks[64];
@@ -187,7 +191,7 @@ void CSC_InitBits()
 int CSC_PopLSB(CSC_Bitboard* board)
 {
     int b = CSC_LSB(*board);
-    *board &= ~((CSC_Bitboard)1 << b);
+    *board &= *board - 1;
     return b;
 }
 
@@ -200,12 +204,24 @@ int CSC_PopMSB(CSC_Bitboard* board)
 
 int CSC_LSB(CSC_Bitboard board)
 {
-    return __builtin_ctzll(board);
+    int bit;
+#ifdef _MSC_VER
+    _BitScanForward64(&bit, board);
+#else
+    bit = __builtin_ffsll(board) - 1;
+#endif
+    return bit;
 }
 
 int CSC_MSB(CSC_Bitboard board)
 {
-    return 63 - __builtin_clzll(board);
+    int bit;
+#ifdef _MSC_VER
+    _BitScanReverse64(&bit, board);
+#else
+    bit = 63 - __builtin_clzll(board);
+#endif
+    return bit;
 }
 
 bool CSC_Test(CSC_Bitboard board, int loc)

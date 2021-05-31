@@ -5,7 +5,13 @@
 #include "stddef.h"
 #include "stdint.h"
 
+#ifdef _MSC_VER
+#define EXPORT __declspec(dllexport)
+#elif __GNUC__
 #define EXPORT __attribute__ ((visibility("default")))
+#else
+#error "Compiler not supported"
+#endif
 
 #define CSC_FILE_NB 8
 #define CSC_RANK_NB 8

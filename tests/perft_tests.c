@@ -95,6 +95,8 @@ char* PerftTest()
         test.depth,
         test.expected);
 
+    fflush(stdout);
+
     /* Allocate the move lists. */
     list_per_depth = malloc(test.depth * sizeof(struct CSC_MoveList*));
     for (i = 0; i < test.depth; i++)
