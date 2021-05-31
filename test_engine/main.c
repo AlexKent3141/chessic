@@ -4,6 +4,8 @@
 #include "string.h"
 #include "time.h"
 
+#define UNUSED(x) (void)(x)
+
 int quit = 0;
 struct CSC_Board* latestPosition = NULL;
 
@@ -29,10 +31,13 @@ void onPosition(struct CSC_Board* board)
 
 /* This is where we would execute the search algorithm.
    For this test engine just report a random best move. */
-void onGo()
+void onGo(struct CSC_SearchConstraints* sc, struct CSC_TimeConstraints* tc)
 {
     struct CSC_MoveList* list = CSC_MakeMoveList();
     CSC_Move bestMove;
+
+    UNUSED(sc);
+    UNUSED(tc);
 
     if (latestPosition == NULL)
     {
