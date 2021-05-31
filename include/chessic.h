@@ -182,17 +182,26 @@ EXPORT void CSC_UndoMove(struct CSC_Board*);
 EXPORT bool CSC_IsAttacked(struct CSC_Board*, int);
 
 /* Methods for creating and interacting with pieces. */
-#define CSC_CreatePiece(col, pt) (col + (pt << 1))
+#define CSC_CreatePiece(col, pt) (col + ((pt) << 1))
 #define CSC_GetPieceColour(p)    (p & 0x1)
 #define CSC_GetPieceType(p)      (p >> 1)
-#define CSC_SetPieceType(pp, pt) (*pp = (*pp & 0x1) + (pt << 1))
+#define CSC_SetPieceType(pp, pt) (*pp = (*pp & 0x1) + ((pt) << 1))
 
 /* Methods for creating and interacting with moves. */
-EXPORT CSC_Move CSC_CreateMove(char, char, enum CSC_PieceType, enum CSC_MoveType);
-EXPORT char CSC_GetMoveStart(CSC_Move);
-EXPORT char CSC_GetMoveEnd(CSC_Move);
-EXPORT enum CSC_PieceType CSC_GetMovePromotion(CSC_Move);
-EXPORT enum CSC_MoveType CSC_GetMoveType(CSC_Move);
+
+/* The bit layout for a move is:
+   6 bits for the start location
+   6 bits for the end location
+   3 bits for the promotion piece type
+   6 bits for the move type */
+#define CSC_CreateMove(start, end, promo, pt) \
+    (start + ((end) << 6) + ((promo) << 12) + ((pt) << 15))
+
+#define CSC_GetMoveStart(m) (m & 0x3F)
+#define CSC_GetMoveEnd(m) ((m >> 6) & 0x3F)
+#define CSC_GetMovePromotion(m) ((m >> 12) & 0x7)
+#define CSC_GetMoveType(m) ((m >> 15) & 0x3F)
+
 EXPORT struct CSC_MoveList* CSC_MakeMoveList();
 EXPORT void CSC_AddMove(struct CSC_MoveList*, CSC_Move);
 EXPORT void CSC_FreeMoveList(struct CSC_MoveList*);
