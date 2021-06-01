@@ -442,7 +442,7 @@ void CSC_UCIBestMove(
     fflush(stdout);
 }
 
-void CSC_UCIInfo(
+void CSC_UCIOutputInfo(
     struct CSC_UCIInfo* info)
 {
     char moveBuf[CSC_MAX_UCI_MOVE_LENGTH];

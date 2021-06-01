@@ -14,5 +14,5 @@ target_link_libraries(test
 add_custom_command(TARGET test POST_BUILD
   COMMAND
     ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/tests/perftsuite.epd
+    ${CMAKE_CURRENT_SOURCE_DIR}/perftsuite.epd
     ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/perftsuite.epd)

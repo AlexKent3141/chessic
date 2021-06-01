@@ -10,3 +10,7 @@ add_library(chessic
     uci.c
     token.c
     zobrist.c)
+
+target_include_directories(chessic
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include)

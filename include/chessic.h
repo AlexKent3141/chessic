@@ -321,7 +321,7 @@ EXPORT void CSC_UCIBestMove(
     CSC_Move bestMove,
     CSC_Move* ponderMove);
 
-EXPORT void CSC_UCIInfo(
+EXPORT void CSC_UCIOutputInfo(
     struct CSC_UCIInfo* info);
 
 EXPORT void CSC_UCISupportedOptions(
