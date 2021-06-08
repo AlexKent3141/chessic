@@ -454,27 +454,27 @@ void CSC_UCIOutputInfo(
 
     if (info->depth)
     {
-        printf("depth %d", *info->depth);
+        printf(" depth %d", *info->depth);
     }
 
     if (info->selDepth)
     {
-        printf("seldepth %d", *info->selDepth);
+        printf(" seldepth %d", *info->selDepth);
     }
 
     if (info->time)
     {
-        printf("time %d", *info->time);
+        printf(" time %d", *info->time);
     }
 
     if (info->nodes)
     {
-        printf("nodes %d", *info->nodes);
+        printf(" nodes %d", *info->nodes);
     }
 
     if (info->pv)
     {
-        printf("pv");
+        printf(" pv");
         for (i = 0; i < info->pv->n; i++)
         {
             memset(moveBuf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
@@ -492,19 +492,19 @@ void CSC_UCIOutputInfo(
     {
         if (info->score->cp)
         {
-            printf("cp %d", *info->score->cp);
+            printf(" cp %d", *info->score->cp);
         }
         else if (info->score->mate)
         {
-            printf("mate %d", *info->score->mate);
+            printf(" mate %d", *info->score->mate);
         }
         else if (info->score->lowerBound)
         {
-            printf("lowerbound %d", *info->score->lowerBound);
+            printf(" lowerbound %d", *info->score->lowerBound);
         }
         else if (info->score->upperBound)
         {
-            printf("upperbound %d", *info->score->upperBound);
+            printf(" upperbound %d", *info->score->upperBound);
         }
     }
 
@@ -512,32 +512,32 @@ void CSC_UCIOutputInfo(
     {
         memset(moveBuf, 0, CSC_MAX_UCI_MOVE_LENGTH*sizeof(char));
         CSC_MoveToUCIString(*info->currMove, moveBuf, NULL);
-        printf("currmove %s", moveBuf);
+        printf(" currmove %s", moveBuf);
     }
 
     if (info->currMoveNumber)
     {
-        printf("currmovenumber %d", *info->currMoveNumber);
+        printf(" currmovenumber %d", *info->currMoveNumber);
     }
 
     if (info->hashFull)
     {
-        printf("hashfull %d", *info->hashFull);
+        printf(" hashfull %d", *info->hashFull);
     }
 
     if (info->nps)
     {
-        printf("nps %d", *info->nps);
+        printf(" nps %d", *info->nps);
     }
 
     if (info->tbHits)
     {
-        printf("tbhits %d", *info->tbHits);
+        printf(" tbhits %d", *info->tbHits);
     }
 
     if (info->string)
     {
-        printf("string %s", info->string);
+        printf(" string %s", info->string);
     }
 
     if (info->refutation)
