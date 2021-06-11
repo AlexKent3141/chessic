@@ -48,7 +48,7 @@ void AddPromoMoves(
 void FindPawnMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
-    enum CSC_MoveGenType type)
+    CSC_Bitboard targets)
 {
     int p = b->player;
     CSC_Bitboard enemies = b->all[1-p];
@@ -63,29 +63,83 @@ void FindPawnMoves(
     int epLoc;
 
     /* Single and double pawn pushes (without promotions). */
-    if (type & CSC_QUIETS)
-    {
-        pawns = b->pieces[CSC_PAWN][p] & ~promo;
-        f1 = p == CSC_WHITE
-            ? pawns << CSC_FILE_NB
-            : pawns >> CSC_FILE_NB;
+    pawns = b->pieces[CSC_PAWN][p] & ~promo;
+    f1 = p == CSC_WHITE
+        ? pawns << CSC_FILE_NB
+        : pawns >> CSC_FILE_NB;
 
-        f1 &= ~all;
+    f1 &= ~all;
 
-        f2 = p == CSC_WHITE
-            ? (f1 & CSC_Ranks[2]) << CSC_FILE_NB
-            : (f1 & CSC_Ranks[5]) >> CSC_FILE_NB;
+    f2 = p == CSC_WHITE
+        ? (f1 & CSC_Ranks[2]) << CSC_FILE_NB
+        : (f1 & CSC_Ranks[5]) >> CSC_FILE_NB;
 
-        f2 &= ~all;
+    f2 &= ~all;
 
-        AddPawnMoves(b, f1, l, forward, CSC_NORMAL);
-        AddPawnMoves(b, f2, l, 2*forward, CSC_TWOSPACE);
-    }
+    AddPawnMoves(b, f1 & targets, l, forward, CSC_NORMAL);
+    AddPawnMoves(b, f2 & targets, l, 2*forward, CSC_TWOSPACE);
 
     /* Normal and en-passent captures (without promotions). */
-    if (type & CSC_CAPTURES)
+    pawns = b->pieces[CSC_PAWN][p] & ~promo;
+
+    /* Ensure that no captures wrap around the struct CSC_Board. */
+    leftCapPawns = pawns & ~CSC_Files[0];
+    rightCapPawns = pawns & ~CSC_Files[7];
+
+    /* Defining left and right from white's perspective... */
+    leftCaps = p == CSC_WHITE
+        ? leftCapPawns << capLeft
+        : leftCapPawns >> capRight;
+
+    rightCaps = p == CSC_WHITE
+        ? rightCapPawns << capRight
+        : rightCapPawns >> capLeft;
+
+    AddPawnMoves(
+        b,
+        leftCaps & enemies & targets,
+        l,
+        p == CSC_WHITE ? capLeft : -capRight, CSC_NORMAL);
+
+    AddPawnMoves(
+        b,
+        rightCaps & enemies & targets,
+        l,
+        p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
+
+    epLoc = CSC_GetEnPassentIndex(b);
+    if (epLoc != CSC_BAD_LOC && CSC_Test(targets, epLoc))
     {
-        pawns = b->pieces[CSC_PAWN][p] & ~promo;
+        ep = (CSC_Bitboard)1 << epLoc;
+
+        /* Need to shift "backwards" from the ep location. */
+        caps = 0;
+        if (!(ep & CSC_Files[0]))
+        {
+            caps |= p == CSC_WHITE ? ep >> capRight : ep << capLeft;
+        }
+
+        if (!(ep & CSC_Files[7]))
+        {
+            caps |= p == CSC_WHITE ? ep >> capLeft : ep << capRight;
+        }
+
+        caps &= pawns;
+
+        while (caps)
+        {
+            AddMove(b, l, CSC_CreateMove(CSC_PopLSB(&caps), epLoc, CSC_NONE, CSC_ENPASSENT));
+        }
+    }
+
+    /* Promotions. */
+    pawns = b->pieces[CSC_PAWN][p] & promo;
+    if (pawns)
+    {
+        f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
+        f1 &= ~all;
+
+        AddPromoMoves(b, f1 & targets, l, forward);
 
         /* Ensure that no captures wrap around the struct CSC_Board. */
         leftCapPawns = pawns & ~CSC_Files[0];
@@ -100,80 +154,17 @@ void FindPawnMoves(
             ? rightCapPawns << capRight
             : rightCapPawns >> capLeft;
 
-        AddPawnMoves(
+        AddPromoMoves(
             b,
             leftCaps & enemies,
             l,
-            p == CSC_WHITE ? capLeft : -capRight, CSC_NORMAL);
+            p == CSC_WHITE ? capLeft : -capRight);
 
-        AddPawnMoves(
+        AddPromoMoves(
             b,
             rightCaps & enemies,
             l,
-            p == CSC_WHITE ? capRight : -capLeft, CSC_NORMAL);
-
-        epLoc = CSC_GetEnPassentIndex(b);
-        if (epLoc != CSC_BAD_LOC)
-        {
-            ep = (CSC_Bitboard)1 << epLoc;
-
-            /* Need to shift "backwards" from the ep location. */
-            caps = 0;
-            if (!(ep & CSC_Files[0]))
-            {
-                caps |= p == CSC_WHITE ? ep >> capRight : ep << capLeft;
-            }
-
-            if (!(ep & CSC_Files[7]))
-            {
-                caps |= p == CSC_WHITE ? ep >> capLeft : ep << capRight;
-            }
-
-            caps &= pawns;
-
-            while (caps)
-            {
-                AddMove(b, l, CSC_CreateMove(CSC_PopLSB(&caps), epLoc, CSC_NONE, CSC_ENPASSENT));
-            }
-        }
-    }
-
-    /* Promotions. */
-    pawns = b->pieces[CSC_PAWN][p] & promo;
-    if (pawns)
-    {
-        f1 = p == CSC_WHITE ? pawns << CSC_FILE_NB : pawns >> CSC_FILE_NB;
-        f1 &= ~all;
-
-        AddPromoMoves(b, f1, l, forward);
-
-        if (type & CSC_CAPTURES)
-        {
-            /* Ensure that no captures wrap around the struct CSC_Board. */
-            leftCapPawns = pawns & ~CSC_Files[0];
-            rightCapPawns = pawns & ~CSC_Files[7];
-
-            /* Defining left and right from white's perspective... */
-            leftCaps = p == CSC_WHITE
-                ? leftCapPawns << capLeft
-                : leftCapPawns >> capRight;
-
-            rightCaps = p == CSC_WHITE
-                ? rightCapPawns << capRight
-                : rightCapPawns >> capLeft;
-
-            AddPromoMoves(
-                b,
-                leftCaps & enemies,
-                l,
-                p == CSC_WHITE ? capLeft : -capRight);
-
-            AddPromoMoves(
-                b,
-                rightCaps & enemies,
-                l,
-                p == CSC_WHITE ? capRight : -capLeft);
-        }
+            p == CSC_WHITE ? capRight : -capLeft);
     }
 }
 
@@ -341,11 +332,11 @@ void CSC_GetMoves(
 
     if (CSC_IsDrawn(b)) return;
 
-    FindPawnMoves(b, l, type);
-
     targets = 0;
     if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
     if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
+
+    FindPawnMoves(b, l, targets);
 
     FindKnightMoves(b, l, targets);
     FindKingMoves(b, l, targets);
