@@ -45,6 +45,10 @@ void AddPromoMoves(
     }
 }
 
+/* When generating pawn moves we need to deal en passent moves, which don't
+   follow the pattern of capturing the target square.
+   To deal with this we need the "QUIETS" move type to be passed in if  the
+   user wants to exclude them. */
 void FindPawnMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
@@ -156,13 +160,13 @@ void FindPawnMoves(
 
         AddPromoMoves(
             b,
-            leftCaps & enemies,
+            leftCaps & enemies & targets,
             l,
             p == CSC_WHITE ? capLeft : -capRight);
 
         AddPromoMoves(
             b,
-            rightCaps & enemies,
+            rightCaps & enemies & targets,
             l,
             p == CSC_WHITE ? capRight : -capLeft);
     }
@@ -210,13 +214,14 @@ void FindKnightMoves(
 
 void FindCastlingMoves(
     struct CSC_Board* b,
-    struct CSC_MoveList* l)
+    struct CSC_MoveList* l,
+    CSC_Bitboard targets)
 {
     int p = b->player;
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     int startLoc = p == CSC_WHITE ? 4 : 60;
     struct BoardState* state = Top((struct StateStack*)b->states);
-    if (state->castlingRights[p].kingSide)
+    if (state->castlingRights[p].kingSide && CSC_Test(targets, startLoc+2))
     {
         if (!CSC_Test(all, startLoc+1)
          && !CSC_Test(all, startLoc+2)
@@ -227,7 +232,7 @@ void FindCastlingMoves(
         }
     }
 
-    if (state->castlingRights[p].queenSide)
+    if (state->castlingRights[p].queenSide && CSC_Test(targets, startLoc-3))
     {
         if (!CSC_Test(all, startLoc-1)
          && !CSC_Test(all, startLoc-2)
@@ -246,7 +251,7 @@ void FindKingMoves(
     CSC_Bitboard targets)
 {
     FindStepperMoves(b, l, b->pieces[CSC_KING][b->player], targets, CSC_KingAttacks);
-    FindCastlingMoves(b, l);
+    FindCastlingMoves(b, l, targets);
 }
 
 void FindOrthMoves(
@@ -328,15 +333,14 @@ void CSC_GetMoves(
     struct CSC_MoveList* l,
     enum CSC_MoveGenType type)
 {
-    CSC_Bitboard targets, orth, diag;
+    CSC_Bitboard targets, orth, diag, ep;
+    int epLoc;
 
     if (CSC_IsDrawn(b)) return;
 
     targets = 0;
     if (type & CSC_QUIETS) targets |= ~(b->all[CSC_WHITE] | b->all[CSC_BLACK]);
     if (type & CSC_CAPTURES) targets |= b->all[1-b->player];
-
-    FindPawnMoves(b, l, targets);
 
     FindKnightMoves(b, l, targets);
     FindKingMoves(b, l, targets);
@@ -346,4 +350,20 @@ void CSC_GetMoves(
 
     diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
     FindDiagMoves(b, l, diag, targets, CSC_RayAttacks);
+
+    epLoc = CSC_GetEnPassentIndex(b);
+    if (epLoc != CSC_BAD_LOC)
+    {
+      ep = (CSC_Bitboard)1 << epLoc;
+      if (type & CSC_CAPTURES)
+      {
+        targets |= ep;
+      }
+      else
+      {
+        targets &= ~ep;
+      }
+    }
+
+    FindPawnMoves(b, l, targets);
 }
