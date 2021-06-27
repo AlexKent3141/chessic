@@ -254,40 +254,30 @@ void FindKingMoves(
     FindCastlingMoves(b, l, targets);
 }
 
+#define ADD_RAY_MOVES(loc, dir, LM) \
+    ray = CSC_RayAttacks[loc][dir]; \
+    blockers = ray & all; \
+    if (blockers) ray ^= CSC_RayAttacks[CSC_##LM(blockers)][dir]; \
+    AddMoves(b, loc, l, ray & targets);
+
 void FindOrthMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
     CSC_Bitboard pieces,
-    CSC_Bitboard targets,
-    CSC_Bitboard (*rays)[8])
+    CSC_Bitboard targets)
 {
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
 
-    int p;
+    int loc;
     CSC_Bitboard blockers, ray;
     while (pieces)
     {
-        p = CSC_PopLSB(&pieces);
+        loc = CSC_PopLSB(&pieces);
 
-        ray = rays[p][CSC_NORTH];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTH];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_EAST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_EAST];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_SOUTH];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTH];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_WEST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_WEST];
-        AddMoves(b, p, l, ray & targets);
+        ADD_RAY_MOVES(loc, CSC_NORTH, LSB)
+        ADD_RAY_MOVES(loc, CSC_EAST, LSB)
+        ADD_RAY_MOVES(loc, CSC_SOUTH, MSB)
+        ADD_RAY_MOVES(loc, CSC_WEST, MSB)
     }
 }
 
@@ -295,36 +285,20 @@ void FindDiagMoves(
     struct CSC_Board* b,
     struct CSC_MoveList* l,
     CSC_Bitboard pieces,
-    CSC_Bitboard targets,
-    CSC_Bitboard (*rays)[8])
+    CSC_Bitboard targets)
 {
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
 
-    int p;
+    int loc;
     CSC_Bitboard blockers, ray;
     while (pieces)
     {
-        p = CSC_PopLSB(&pieces);
+        loc  = CSC_PopLSB(&pieces);
 
-        ray = rays[p][CSC_NORTHWEST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHWEST];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_NORTHEAST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_LSB(blockers)][CSC_NORTHEAST];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_SOUTHWEST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHWEST];
-        AddMoves(b, p, l, ray & targets);
-
-        ray = rays[p][CSC_SOUTHEAST];
-        blockers = ray & all;
-        if (blockers) ray ^= rays[CSC_MSB(blockers)][CSC_SOUTHEAST];
-        AddMoves(b, p, l, ray & targets);
+        ADD_RAY_MOVES(loc, CSC_NORTHWEST, LSB);
+        ADD_RAY_MOVES(loc, CSC_NORTHEAST, LSB);
+        ADD_RAY_MOVES(loc, CSC_SOUTHWEST, MSB);
+        ADD_RAY_MOVES(loc, CSC_SOUTHEAST, MSB);
     }
 }
 
@@ -346,10 +320,10 @@ void CSC_GetMoves(
     FindKingMoves(b, l, targets);
 
     orth = b->pieces[CSC_ROOK][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindOrthMoves(b, l, orth, targets, CSC_RayAttacks);
+    FindOrthMoves(b, l, orth, targets);
 
     diag = b->pieces[CSC_BISHOP][b->player] | b->pieces[CSC_QUEEN][b->player];
-    FindDiagMoves(b, l, diag, targets, CSC_RayAttacks);
+    FindDiagMoves(b, l, diag, targets);
 
     epLoc = CSC_GetEnPassentIndex(b);
     if (epLoc != CSC_BAD_LOC)
@@ -368,6 +342,12 @@ void CSC_GetMoves(
     FindPawnMoves(b, l, targets);
 }
 
+#define ADD_RAY_ATTACKS(loc, dir, LM) \
+    ray = CSC_RayAttacks[loc][dir]; \
+    blockers = ray & all; \
+    if (blockers) ray ^= CSC_RayAttacks[CSC_##LM(blockers)][dir]; \
+    *attacks |= ray;
+
 void AddDiagAttacks(
     struct CSC_Board* b,
     int loc,
@@ -376,25 +356,10 @@ void AddDiagAttacks(
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     CSC_Bitboard blockers, ray;
 
-    ray = CSC_RayAttacks[loc][CSC_NORTHWEST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTHWEST];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_NORTHEAST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTHEAST];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_SOUTHWEST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTHWEST];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_SOUTHEAST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTHEAST];
-    *attacks |= ray;
+    ADD_RAY_ATTACKS(loc, CSC_NORTHWEST, LSB)
+    ADD_RAY_ATTACKS(loc, CSC_NORTHEAST, LSB)
+    ADD_RAY_ATTACKS(loc, CSC_SOUTHWEST, MSB)
+    ADD_RAY_ATTACKS(loc, CSC_SOUTHEAST, MSB)
 }
 
 void AddOrthAttacks(
@@ -405,25 +370,10 @@ void AddOrthAttacks(
     CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
     CSC_Bitboard blockers, ray;
 
-    ray = CSC_RayAttacks[loc][CSC_NORTH];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTH];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_EAST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_EAST];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_SOUTH];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTH];
-    *attacks |= ray;
-
-    ray = CSC_RayAttacks[loc][CSC_WEST];
-    blockers = ray & all;
-    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_WEST];
-    *attacks |= ray;
+    ADD_RAY_ATTACKS(loc, CSC_NORTH, LSB)
+    ADD_RAY_ATTACKS(loc, CSC_EAST, LSB)
+    ADD_RAY_ATTACKS(loc, CSC_SOUTH, MSB)
+    ADD_RAY_ATTACKS(loc, CSC_WEST, MSB)
 }
 
 CSC_Bitboard CSC_GetAttacks(
