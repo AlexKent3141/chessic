@@ -224,6 +224,15 @@ int CSC_MSB(CSC_Bitboard board)
     return bit;
 }
 
+int CSC_Count(CSC_Bitboard board)
+{
+#ifdef _MSC_VER
+    return __popcnt64(board);
+#else
+    return __builtin_popcountll(board);
+#endif
+}
+
 bool CSC_Test(CSC_Bitboard board, int loc)
 {
     return board & ((CSC_Bitboard)1 << loc);

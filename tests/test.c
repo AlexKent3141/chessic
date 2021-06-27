@@ -1,6 +1,7 @@
 #include "chessic.h"
 #include "parser_tests.h"
 #include "movegen_tests.h"
+#include "attackgen_tests.h"
 #include "make_undo_tests.h"
 #include "perft_tests.h"
 #include "uci_tests.h"
@@ -27,6 +28,7 @@ int main()
     pass = RunTests(AllTokenTests)
         && RunTests(AllParserTests)
         && RunTests(AllMoveGenTests)
+        && RunTests(AllAttackGenTests)
         && RunTests(AllMakeUndoTests)
         && RunTests(AllUCITests)
         && RunTests(AllPerftTests);

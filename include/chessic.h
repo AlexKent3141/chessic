@@ -143,6 +143,7 @@ EXPORT int CSC_PopLSB(CSC_Bitboard*);
 EXPORT int CSC_PopMSB(CSC_Bitboard*);
 EXPORT int CSC_LSB(CSC_Bitboard);
 EXPORT int CSC_MSB(CSC_Bitboard);
+EXPORT int CSC_Count(CSC_Bitboard);
 EXPORT bool CSC_Test(CSC_Bitboard, int);
 EXPORT void CSC_PrintBitboard(CSC_Bitboard);
 
@@ -167,7 +168,7 @@ EXPORT bool CSC_IsDrawn(struct CSC_Board*);
 /* Check whether the specified move is legal in the given board state. */
 EXPORT bool CSC_IsLegal(struct CSC_Board*, CSC_Move);
 
-/* Generate pseudo-legal moves. */
+/* Generate legal moves. */
 EXPORT void CSC_GetMoves(
     struct CSC_Board*,
     struct CSC_MoveList*,
@@ -180,6 +181,8 @@ EXPORT void CSC_MakeMove(struct CSC_Board*, CSC_Move);
 EXPORT void CSC_UndoMove(struct CSC_Board*);
 
 EXPORT bool CSC_IsAttacked(struct CSC_Board*, int);
+
+EXPORT CSC_Bitboard CSC_GetAttacks(struct CSC_Board*, int);
 
 /* Methods for creating and interacting with pieces. */
 #define CSC_CreatePiece(col, pt) (col + ((pt) << 1))

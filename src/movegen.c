@@ -354,16 +354,132 @@ void CSC_GetMoves(
     epLoc = CSC_GetEnPassentIndex(b);
     if (epLoc != CSC_BAD_LOC)
     {
-      ep = (CSC_Bitboard)1 << epLoc;
-      if (type & CSC_CAPTURES)
-      {
-        targets |= ep;
-      }
-      else
-      {
-        targets &= ~ep;
-      }
+        ep = (CSC_Bitboard)1 << epLoc;
+        if (type & CSC_CAPTURES)
+        {
+            targets |= ep;
+        }
+        else
+        {
+            targets &= ~ep;
+        }
     }
 
     FindPawnMoves(b, l, targets);
+}
+
+void AddDiagAttacks(
+    struct CSC_Board* b,
+    int loc,
+    CSC_Bitboard* attacks)
+{
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    CSC_Bitboard blockers, ray;
+
+    ray = CSC_RayAttacks[loc][CSC_NORTHWEST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTHWEST];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_NORTHEAST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTHEAST];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_SOUTHWEST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTHWEST];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_SOUTHEAST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTHEAST];
+    *attacks |= ray;
+}
+
+void AddOrthAttacks(
+    struct CSC_Board* b,
+    int loc,
+    CSC_Bitboard* attacks)
+{
+    CSC_Bitboard all = b->all[CSC_WHITE] | b->all[CSC_BLACK];
+    CSC_Bitboard blockers, ray;
+
+    ray = CSC_RayAttacks[loc][CSC_NORTH];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_NORTH];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_EAST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_LSB(blockers)][CSC_EAST];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_SOUTH];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_SOUTH];
+    *attacks |= ray;
+
+    ray = CSC_RayAttacks[loc][CSC_WEST];
+    blockers = ray & all;
+    if (blockers) ray ^= CSC_RayAttacks[CSC_MSB(blockers)][CSC_WEST];
+    *attacks |= ray;
+}
+
+CSC_Bitboard CSC_GetAttacks(
+    struct CSC_Board* b,
+    int loc)
+{
+    CSC_Bitboard attacks = 0;
+    CSC_Piece p = b->squares[loc];
+    enum CSC_PieceType pt;
+
+    if (!p) return attacks;
+
+    pt = CSC_GetPieceType(p);
+
+    if (pt == CSC_PAWN)
+    {
+        /* Left captures. */
+        if (!CSC_Test(CSC_Files[0], loc))
+        {
+            if (b->player == CSC_GetPieceColour(p))
+                attacks |= (CSC_Bitboard)1 << (loc + 7);
+            else
+                attacks |= (CSC_Bitboard)1 << (loc - 9);
+        }
+
+        /* Right captures. */
+        if (!CSC_Test(CSC_Files[7], loc))
+        {
+            if (b->player == CSC_GetPieceColour(p))
+                attacks |= (CSC_Bitboard)1 << (loc + 9);
+            else
+                attacks |= (CSC_Bitboard)1 << (loc - 7);
+        }
+
+    }
+    else if (pt == CSC_KNIGHT)
+    {
+        attacks = CSC_KnightAttacks[loc];
+    }
+    else if (pt == CSC_BISHOP)
+    {
+        AddDiagAttacks(b, loc, &attacks);
+    }
+    else if (pt == CSC_ROOK)
+    {
+        AddOrthAttacks(b, loc, &attacks);
+    }
+    else if (pt == CSC_QUEEN)
+    {
+        AddDiagAttacks(b, loc, &attacks);
+        AddOrthAttacks(b, loc, &attacks);
+    }
+    else if (pt == CSC_KING)
+    {
+        attacks = CSC_KingAttacks[loc];
+    }
+
+    return attacks;
 }

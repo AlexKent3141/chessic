@@ -1,5 +1,6 @@
 
 add_executable(test
+  attackgen_tests.c
   make_undo_tests.c
   movegen_tests.c
   parser_tests.c
